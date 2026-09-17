@@ -1,0 +1,1258 @@
+{
+	"name": "DS_ADLS_Bronze_Tweets_JSON_Historical",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_nvda",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "bronze"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"cursor": {
+					"type": "object",
+					"properties": {
+						"bottom": {
+							"type": "string"
+						},
+						"top": {
+							"type": "string"
+						}
+					}
+				},
+				"result": {
+					"type": "object",
+					"properties": {
+						"timeline": {
+							"type": "object",
+							"properties": {
+								"instructions": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"entries": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"content": {
+															"type": "object",
+															"properties": {
+																"__typename": {
+																	"type": "string"
+																},
+																"clientEventInfo": {
+																	"type": "object",
+																	"properties": {
+																		"component": {
+																			"type": "string"
+																		},
+																		"details": {
+																			"type": "object",
+																			"properties": {
+																				"timelinesDetails": {
+																					"type": "object",
+																					"properties": {
+																						"controllerData": {
+																							"type": "string"
+																						}
+																					}
+																				}
+																			}
+																		},
+																		"element": {
+																			"type": "string"
+																		}
+																	}
+																},
+																"entryType": {
+																	"type": "string"
+																},
+																"feedbackInfo": {
+																	"type": "object",
+																	"properties": {
+																		"feedbackKeys": {
+																			"type": "array",
+																			"items": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																},
+																"itemContent": {
+																	"type": "object",
+																	"properties": {
+																		"__typename": {
+																			"type": "string"
+																		},
+																		"highlights": {
+																			"type": "object",
+																			"properties": {
+																				"textHighlights": {
+																					"type": "array",
+																					"items": {
+																						"type": "object",
+																						"properties": {
+																							"endIndex": {
+																								"type": "integer"
+																							},
+																							"startIndex": {
+																								"type": "integer"
+																							}
+																						}
+																					}
+																				}
+																			}
+																		},
+																		"itemType": {
+																			"type": "string"
+																		},
+																		"tweetDisplayType": {
+																			"type": "string"
+																		},
+																		"tweet_results": {
+																			"type": "object",
+																			"properties": {
+																				"result": {
+																					"type": "object",
+																					"properties": {
+																						"__typename": {
+																							"type": "string"
+																						},
+																						"cashtag_attachments": {
+																							"type": "array",
+																							"items": {
+																								"type": "object",
+																								"properties": {
+																									"rest_id": {
+																										"type": "string"
+																									}
+																								}
+																							}
+																						},
+																						"core": {
+																							"type": "object",
+																							"properties": {
+																								"user_results": {
+																									"type": "object",
+																									"properties": {
+																										"result": {
+																											"type": "object",
+																											"properties": {
+																												"__typename": {
+																													"type": "string"
+																												},
+																												"action_counts": {
+																													"type": "object",
+																													"properties": {
+																														"favorites_count": {
+																															"type": "integer"
+																														}
+																													}
+																												},
+																												"affiliates_highlighted_label": {
+																													"type": "object",
+																													"properties": {
+																														"label": {
+																															"type": "object",
+																															"properties": {
+																																"badge": {
+																																	"type": "object",
+																																	"properties": {
+																																		"url": {
+																																			"type": "string"
+																																		}
+																																	}
+																																},
+																																"description": {
+																																	"type": "string"
+																																},
+																																"url": {
+																																	"type": "object",
+																																	"properties": {
+																																		"url": {
+																																			"type": "string"
+																																		},
+																																		"urlType": {
+																																			"type": "string"
+																																		}
+																																	}
+																																},
+																																"userLabelDisplayType": {
+																																	"type": "string"
+																																},
+																																"userLabelType": {
+																																	"type": "string"
+																																}
+																															}
+																														}
+																													}
+																												},
+																												"avatar": {
+																													"type": "object",
+																													"properties": {
+																														"image_url": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"banner": {
+																													"type": "object",
+																													"properties": {
+																														"image_url": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"core": {
+																													"type": "object",
+																													"properties": {
+																														"created_at": {
+																															"type": "string"
+																														},
+																														"name": {
+																															"type": "string"
+																														},
+																														"screen_name": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"dm_permissions": {
+																													"type": "object",
+																													"properties": {
+																														"can_dm": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"follow_request_sent": {
+																													"type": "boolean"
+																												},
+																												"grok_translated_bio_with_availability": {
+																													"type": "object",
+																													"properties": {
+																														"is_available": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"has_graduated_access": {
+																													"type": "boolean"
+																												},
+																												"id": {
+																													"type": "string"
+																												},
+																												"is_blue_verified": {
+																													"type": "boolean"
+																												},
+																												"location": {
+																													"type": "object",
+																													"properties": {
+																														"location": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"media_permissions": {
+																													"type": "object",
+																													"properties": {
+																														"can_media_tag": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"notifications_settings": {
+																													"type": "object",
+																													"properties": {
+																														"notifications_enabled": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"parody_commentary_fan_label": {
+																													"type": "string"
+																												},
+																												"pinned_items": {
+																													"type": "object"
+																												},
+																												"possibly_sensitive": {
+																													"type": "boolean"
+																												},
+																												"privacy": {
+																													"type": "object",
+																													"properties": {
+																														"protected": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"professional": {
+																													"type": "object",
+																													"properties": {
+																														"category": {
+																															"type": "array",
+																															"items": {
+																																"type": "object",
+																																"properties": {
+																																	"icon_name": {
+																																		"type": "string"
+																																	},
+																																	"id": {
+																																		"type": "integer"
+																																	},
+																																	"name": {
+																																		"type": "string"
+																																	}
+																																}
+																															}
+																														},
+																														"professional_type": {
+																															"type": "string"
+																														},
+																														"rest_id": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"profile_bio": {
+																													"type": "object",
+																													"properties": {
+																														"description": {
+																															"type": "string"
+																														},
+																														"entities": {
+																															"type": "object",
+																															"properties": {
+																																"description": {
+																																	"type": "object"
+																																},
+																																"url": {
+																																	"type": "object",
+																																	"properties": {
+																																		"urls": {
+																																			"type": "array",
+																																			"items": {
+																																				"type": "object",
+																																				"properties": {
+																																					"display_url": {
+																																						"type": "string"
+																																					},
+																																					"expanded_url": {
+																																						"type": "string"
+																																					},
+																																					"indices": {
+																																						"type": "array",
+																																						"items": {
+																																							"type": "integer"
+																																						}
+																																					},
+																																					"url": {
+																																						"type": "string"
+																																					}
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															}
+																														}
+																													}
+																												},
+																												"profile_description_language": {
+																													"type": "string"
+																												},
+																												"profile_image_shape": {
+																													"type": "string"
+																												},
+																												"profile_metadata": {
+																													"type": "object",
+																													"properties": {
+																														"profile_interstitial_type": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"profile_translation": {
+																													"type": "object",
+																													"properties": {
+																														"translator_type": {
+																															"type": "string"
+																														}
+																													}
+																												},
+																												"relationship_counts": {
+																													"type": "object",
+																													"properties": {
+																														"followers": {
+																															"type": "integer"
+																														},
+																														"following": {
+																															"type": "integer"
+																														}
+																													}
+																												},
+																												"relationship_perspectives": {
+																													"type": "object",
+																													"properties": {
+																														"blocked_by": {
+																															"type": "boolean"
+																														},
+																														"blocking": {
+																															"type": "boolean"
+																														},
+																														"followed_by": {
+																															"type": "boolean"
+																														},
+																														"following": {
+																															"type": "boolean"
+																														},
+																														"live_following": {
+																															"type": "boolean"
+																														},
+																														"muting": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"rest_id": {
+																													"type": "string"
+																												},
+																												"super_follow_eligible": {
+																													"type": "boolean"
+																												},
+																												"super_followed_by": {
+																													"type": "boolean"
+																												},
+																												"super_following": {
+																													"type": "boolean"
+																												},
+																												"tweet_counts": {
+																													"type": "object",
+																													"properties": {
+																														"media_tweets": {
+																															"type": "integer"
+																														},
+																														"tweets": {
+																															"type": "integer"
+																														}
+																													}
+																												},
+																												"verification": {
+																													"type": "object",
+																													"properties": {
+																														"verified": {
+																															"type": "boolean"
+																														}
+																													}
+																												},
+																												"website": {
+																													"type": "object",
+																													"properties": {
+																														"url": {
+																															"type": "string"
+																														}
+																													}
+																												}
+																											}
+																										}
+																									}
+																								}
+																							}
+																						},
+																						"edit_control": {
+																							"type": "object",
+																							"properties": {
+																								"edit_tweet_ids": {
+																									"type": "array",
+																									"items": {
+																										"type": "string"
+																									}
+																								},
+																								"editable_until_msecs": {
+																									"type": "string"
+																								},
+																								"edits_remaining": {
+																									"type": "string"
+																								},
+																								"is_edit_eligible": {
+																									"type": "boolean"
+																								}
+																							}
+																						},
+																						"grok_analysis_button": {
+																							"type": "boolean"
+																						},
+																						"grok_annotations": {
+																							"type": "object",
+																							"properties": {
+																								"is_image_editable_by_grok": {
+																									"type": "boolean"
+																								}
+																							}
+																						},
+																						"grok_translated_post_with_availability": {
+																							"type": "object",
+																							"properties": {
+																								"is_available": {
+																									"type": "boolean"
+																								}
+																							}
+																						},
+																						"is_translatable": {
+																							"type": "boolean"
+																						},
+																						"legacy": {
+																							"type": "object",
+																							"properties": {
+																								"bookmark_count": {
+																									"type": "integer"
+																								},
+																								"bookmarked": {
+																									"type": "boolean"
+																								},
+																								"conversation_id_str": {
+																									"type": "string"
+																								},
+																								"created_at": {
+																									"type": "string"
+																								},
+																								"display_text_range": {
+																									"type": "array",
+																									"items": {
+																										"type": "integer"
+																									}
+																								},
+																								"entities": {
+																									"type": "object",
+																									"properties": {
+																										"media": {
+																											"type": "array",
+																											"items": {
+																												"type": "object",
+																												"properties": {
+																													"allow_download_status": {
+																														"type": "object",
+																														"properties": {
+																															"allow_download": {
+																																"type": "boolean"
+																															}
+																														}
+																													},
+																													"display_url": {
+																														"type": "string"
+																													},
+																													"expanded_url": {
+																														"type": "string"
+																													},
+																													"ext_media_availability": {
+																														"type": "object",
+																														"properties": {
+																															"status": {
+																																"type": "string"
+																															}
+																														}
+																													},
+																													"features": {
+																														"type": "object",
+																														"properties": {
+																															"large": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"medium": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"orig": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"small": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"id_str": {
+																														"type": "string"
+																													},
+																													"indices": {
+																														"type": "array",
+																														"items": {
+																															"type": "integer"
+																														}
+																													},
+																													"media_key": {
+																														"type": "string"
+																													},
+																													"media_results": {
+																														"type": "object",
+																														"properties": {
+																															"result": {
+																																"type": "object",
+																																"properties": {
+																																	"media_key": {
+																																		"type": "string"
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"media_url_https": {
+																														"type": "string"
+																													},
+																													"original_info": {
+																														"type": "object",
+																														"properties": {
+																															"focus_rects": {
+																																"type": "array",
+																																"items": {
+																																	"type": "object",
+																																	"properties": {
+																																		"h": {
+																																			"type": "integer"
+																																		},
+																																		"w": {
+																																			"type": "integer"
+																																		},
+																																		"x": {
+																																			"type": "integer"
+																																		},
+																																		"y": {
+																																			"type": "integer"
+																																		}
+																																	}
+																																}
+																															},
+																															"height": {
+																																"type": "integer"
+																															},
+																															"width": {
+																																"type": "integer"
+																															}
+																														}
+																													},
+																													"sizes": {
+																														"type": "object",
+																														"properties": {
+																															"large": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"medium": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"small": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"thumb": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"type": {
+																														"type": "string"
+																													},
+																													"url": {
+																														"type": "string"
+																													}
+																												}
+																											}
+																										},
+																										"symbols": {
+																											"type": "array",
+																											"items": {
+																												"type": "object",
+																												"properties": {
+																													"indices": {
+																														"type": "array",
+																														"items": {
+																															"type": "integer"
+																														}
+																													},
+																													"tag": {
+																														"type": "object",
+																														"properties": {
+																															"info": {
+																																"type": "object",
+																																"properties": {
+																																	"info": {
+																																		"type": "object",
+																																		"properties": {
+																																			"name": {
+																																				"type": "string"
+																																			},
+																																			"ticker": {
+																																				"type": "string"
+																																			}
+																																		}
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"text": {
+																														"type": "string"
+																													}
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"extended_entities": {
+																									"type": "object",
+																									"properties": {
+																										"media": {
+																											"type": "array",
+																											"items": {
+																												"type": "object",
+																												"properties": {
+																													"allow_download_status": {
+																														"type": "object",
+																														"properties": {
+																															"allow_download": {
+																																"type": "boolean"
+																															}
+																														}
+																													},
+																													"display_url": {
+																														"type": "string"
+																													},
+																													"expanded_url": {
+																														"type": "string"
+																													},
+																													"ext_media_availability": {
+																														"type": "object",
+																														"properties": {
+																															"status": {
+																																"type": "string"
+																															}
+																														}
+																													},
+																													"features": {
+																														"type": "object",
+																														"properties": {
+																															"large": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"medium": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"orig": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															},
+																															"small": {
+																																"type": "object",
+																																"properties": {
+																																	"faces": {
+																																		"type": "array",
+																																		"items": {
+																																			"type": "object",
+																																			"properties": {
+																																				"h": {
+																																					"type": "integer"
+																																				},
+																																				"w": {
+																																					"type": "integer"
+																																				},
+																																				"x": {
+																																					"type": "integer"
+																																				},
+																																				"y": {
+																																					"type": "integer"
+																																				}
+																																			}
+																																		}
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"id_str": {
+																														"type": "string"
+																													},
+																													"indices": {
+																														"type": "array",
+																														"items": {
+																															"type": "integer"
+																														}
+																													},
+																													"media_key": {
+																														"type": "string"
+																													},
+																													"media_results": {
+																														"type": "object",
+																														"properties": {
+																															"result": {
+																																"type": "object",
+																																"properties": {
+																																	"media_key": {
+																																		"type": "string"
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"media_url_https": {
+																														"type": "string"
+																													},
+																													"original_info": {
+																														"type": "object",
+																														"properties": {
+																															"focus_rects": {
+																																"type": "array",
+																																"items": {
+																																	"type": "object",
+																																	"properties": {
+																																		"h": {
+																																			"type": "integer"
+																																		},
+																																		"w": {
+																																			"type": "integer"
+																																		},
+																																		"x": {
+																																			"type": "integer"
+																																		},
+																																		"y": {
+																																			"type": "integer"
+																																		}
+																																	}
+																																}
+																															},
+																															"height": {
+																																"type": "integer"
+																															},
+																															"width": {
+																																"type": "integer"
+																															}
+																														}
+																													},
+																													"sizes": {
+																														"type": "object",
+																														"properties": {
+																															"large": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"medium": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"small": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															},
+																															"thumb": {
+																																"type": "object",
+																																"properties": {
+																																	"h": {
+																																		"type": "integer"
+																																	},
+																																	"resize": {
+																																		"type": "string"
+																																	},
+																																	"w": {
+																																		"type": "integer"
+																																	}
+																																}
+																															}
+																														}
+																													},
+																													"type": {
+																														"type": "string"
+																													},
+																													"url": {
+																														"type": "string"
+																													}
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"favorite_count": {
+																									"type": "integer"
+																								},
+																								"favorited": {
+																									"type": "boolean"
+																								},
+																								"full_text": {
+																									"type": "string"
+																								},
+																								"id_str": {
+																									"type": "string"
+																								},
+																								"is_quote_status": {
+																									"type": "boolean"
+																								},
+																								"lang": {
+																									"type": "string"
+																								},
+																								"possibly_sensitive": {
+																									"type": "boolean"
+																								},
+																								"possibly_sensitive_editable": {
+																									"type": "boolean"
+																								},
+																								"quote_count": {
+																									"type": "integer"
+																								},
+																								"reply_count": {
+																									"type": "integer"
+																								},
+																								"retweet_count": {
+																									"type": "integer"
+																								},
+																								"retweeted": {
+																									"type": "boolean"
+																								},
+																								"user_id_str": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"rest_id": {
+																							"type": "string"
+																						},
+																						"source": {
+																							"type": "string"
+																						},
+																						"unmention_data": {
+																							"type": "object"
+																						},
+																						"views": {
+																							"type": "object",
+																							"properties": {
+																								"count": {
+																									"type": "string"
+																								},
+																								"state": {
+																									"type": "string"
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														},
+														"entryId": {
+															"type": "string"
+														},
+														"sortIndex": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"type": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"responseObjects": {
+									"type": "object",
+									"properties": {
+										"feedbackActions": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"key": {
+														"type": "string"
+													},
+													"value": {
+														"type": "object",
+														"properties": {
+															"childKeys": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"clientEventInfo": {
+																"type": "object",
+																"properties": {
+																	"action": {
+																		"type": "string"
+																	},
+																	"component": {
+																		"type": "string"
+																	},
+																	"element": {
+																		"type": "string"
+																	}
+																}
+															},
+															"confirmation": {
+																"type": "string"
+															},
+															"confirmationDisplayType": {
+																"type": "string"
+															},
+															"feedbackType": {
+																"type": "string"
+															},
+															"hasUndoAction": {
+																"type": "boolean"
+															},
+															"icon": {
+																"type": "string"
+															},
+															"prompt": {
+																"type": "string"
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"status": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

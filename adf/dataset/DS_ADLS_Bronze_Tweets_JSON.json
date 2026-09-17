@@ -1,0 +1,30 @@
+{
+	"name": "DS_ADLS_Bronze_Tweets_JSON",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_nvda",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_date": {
+				"type": "string",
+				"defaultValue": "2026-09-14"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "page_001.json",
+				"folderPath": {
+					"value": "@concat(\n  'tweets/',\n  formatDateTime(dataset().p_date,'yyyy/MM/dd')\n)",
+					"type": "Expression"
+				},
+				"fileSystem": "bronze"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

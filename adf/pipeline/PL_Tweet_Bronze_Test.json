@@ -1,0 +1,83 @@
+{
+	"name": "PL_Tweet_Bronze_Test",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopyTweetToBronze",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"additionalHeaders": {
+							"x-rapidapi-host": "twitter241.p.rapidapi.com",
+							"x-rapidapi-key": "727db0b576mshe775ec176c92d86p14ef4bjsn4a7020445f69"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_RapidAPI_Tweets",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_date": {
+								"value": "@pipeline().parameters.p_date",
+								"type": "Expression"
+							},
+							"p_next_date": {
+								"value": "@pipeline().parameters.p_next_date",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_ADLS_Bronze_Tweets_JSON",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_date": {
+								"value": "@pipeline().parameters.p_date",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"p_date": {
+				"type": "string",
+				"defaultValue": "2026-09-14"
+			},
+			"p_next_date": {
+				"type": "string",
+				"defaultValue": "2026-09-15"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-15T20:39:34Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

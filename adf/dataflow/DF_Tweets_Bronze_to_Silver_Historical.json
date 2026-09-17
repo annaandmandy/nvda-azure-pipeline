@@ -1,0 +1,124 @@
+{
+	"name": "DF_Tweets_Bronze_to_Silver_Historical",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_ADLS_Bronze_Tweets_JSON_Historical",
+						"type": "DatasetReference"
+					},
+					"name": "ImportTweets"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_ADLS_Silver_Tweets_Parquet_Historical",
+						"type": "DatasetReference"
+					},
+					"name": "SilverTweets"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Flatten1"
+				},
+				{
+					"name": "FlattenEntries"
+				},
+				{
+					"name": "MapTweetFields"
+				},
+				{
+					"name": "DropNullRows"
+				},
+				{
+					"name": "derivedTimestamp"
+				},
+				{
+					"name": "derivedIsWeekend"
+				},
+				{
+					"name": "DeduplicateTweets"
+				},
+				{
+					"name": "KeepUniqueTweets"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          cursor as (bottom as string, top as string),",
+				"          result as (timeline as (instructions as (entries as (content as ({__typename} as string, clientEventInfo as (component as string, details as (timelinesDetails as (controllerData as string)), element as string), entryType as string, feedbackInfo as (feedbackKeys as string[]), itemContent as ({__typename} as string, highlights as (textHighlights as (endIndex as integer, startIndex as integer)[]), itemType as string, tweetDisplayType as string, tweet_results as (result as ({__typename} as string, cashtag_attachments as (rest_id as string)[], core as (user_results as (result as ({__typename} as string, action_counts as (favorites_count as integer), affiliates_highlighted_label as (label as (badge as (url as string), description as string, url as (url as string, urlType as string), userLabelDisplayType as string, userLabelType as string)), avatar as (image_url as string), banner as (image_url as string), core as (created_at as string, name as string, screen_name as string), dm_permissions as (can_dm as boolean), follow_request_sent as boolean, grok_translated_bio_with_availability as (is_available as boolean), has_graduated_access as boolean, id as string, is_blue_verified as boolean, location as (location as string), media_permissions as (can_media_tag as boolean), notifications_settings as (notifications_enabled as boolean), parody_commentary_fan_label as string, pinned_items as ({} as string), possibly_sensitive as boolean, privacy as (protected as boolean), professional as (category as (icon_name as string, id as integer, name as string)[], professional_type as string, rest_id as string), profile_bio as (description as string, entities as (description as ({} as string), url as (urls as (display_url as string, expanded_url as string, indices as integer[], url as string)[]))), profile_description_language as string, profile_image_shape as string, profile_metadata as (profile_interstitial_type as string), profile_translation as (translator_type as string), relationship_counts as (followers as integer, following as integer), relationship_perspectives as (blocked_by as boolean, blocking as boolean, followed_by as boolean, following as boolean, live_following as boolean, muting as boolean), rest_id as string, super_follow_eligible as boolean, super_followed_by as boolean, super_following as boolean, tweet_counts as (media_tweets as integer, tweets as integer), verification as (verified as boolean), website as (url as string)))), edit_control as (edit_tweet_ids as string[], editable_until_msecs as string, edits_remaining as string, is_edit_eligible as boolean), grok_analysis_button as boolean, grok_annotations as (is_image_editable_by_grok as boolean), grok_translated_post_with_availability as (is_available as boolean), is_translatable as boolean, legacy as (bookmark_count as integer, bookmarked as boolean, conversation_id_str as string, created_at as string, display_text_range as integer[], entities as (media as (allow_download_status as (allow_download as boolean), display_url as string, expanded_url as string, ext_media_availability as (status as string), features as (large as (faces as (h as integer, w as integer, x as integer, y as integer)[]), medium as (faces as (h as integer, w as integer, x as integer, y as integer)[]), orig as (faces as (h as integer, w as integer, x as integer, y as integer)[]), small as (faces as (h as integer, w as integer, x as integer, y as integer)[])), id_str as string, indices as integer[], media_key as string, media_results as (result as (media_key as string)), media_url_https as string, original_info as (focus_rects as (h as integer, w as integer, x as integer, y as integer)[], height as integer, width as integer), sizes as (large as (h as integer, resize as string, w as integer), medium as (h as integer, resize as string, w as integer), small as (h as integer, resize as string, w as integer), thumb as (h as integer, resize as string, w as integer)), type as string, url as string)[], symbols as (indices as integer[], tag as (info as (info as (name as string, ticker as string))), text as string)[]), extended_entities as (media as (allow_download_status as (allow_download as boolean), display_url as string, expanded_url as string, ext_media_availability as (status as string), features as (large as (faces as (h as integer, w as integer, x as integer, y as integer)[]), medium as (faces as (h as integer, w as integer, x as integer, y as integer)[]), orig as (faces as (h as integer, w as integer, x as integer, y as integer)[]), small as (faces as (h as integer, w as integer, x as integer, y as integer)[])), id_str as string, indices as integer[], media_key as string, media_results as (result as (media_key as string)), media_url_https as string, original_info as (focus_rects as (h as integer, w as integer, x as integer, y as integer)[], height as integer, width as integer), sizes as (large as (h as integer, resize as string, w as integer), medium as (h as integer, resize as string, w as integer), small as (h as integer, resize as string, w as integer), thumb as (h as integer, resize as string, w as integer)), type as string, url as string)[]), favorite_count as integer, favorited as boolean, full_text as string, id_str as string, is_quote_status as boolean, lang as string, possibly_sensitive as boolean, possibly_sensitive_editable as boolean, quote_count as integer, reply_count as integer, retweet_count as integer, retweeted as boolean, user_id_str as string), rest_id as string, source as string, unmention_data as ({} as string), views as (count as string, state as string))))), entryId as string, sortIndex as string)[], type as string)[], responseObjects as (feedbackActions as (key as string, value as (childKeys as string[], clientEventInfo as (action as string, component as string, element as string), confirmation as string, confirmationDisplayType as string, feedbackType as string, hasUndoAction as boolean, icon as string, prompt as string))[]))),",
+				"          status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'documentPerLine',",
+				"     wildcardPaths:['tweets/2026/08/*/page_001.json','tweets/2026/09/*/page_001.json']) ~> ImportTweets",
+				"ImportTweets foldDown(unroll(result.timeline.instructions),",
+				"     mapColumn(",
+				"          entries = result.timeline.instructions.entries,",
+				"          type = result.timeline.instructions.type,",
+				"          responseObjects = result.timeline.responseObjects",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> Flatten1",
+				"Flatten1 foldDown(unroll(entries),",
+				"     mapColumn(",
+				"          entries,",
+				"          type,",
+				"          responseObjects",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> FlattenEntries",
+				"FlattenEntries select(mapColumn(",
+				"          tweet_id = entries.content.itemContent.tweet_results.result.rest_id,",
+				"          tweet_created_at = entries.content.itemContent.tweet_results.result.legacy.created_at,",
+				"          full_text = entries.content.itemContent.tweet_results.result.legacy.full_text,",
+				"          retweet_count = entries.content.itemContent.tweet_results.result.legacy.retweet_count,",
+				"          view_count = entries.content.itemContent.tweet_results.result.views.count,",
+				"          reply_count = entries.content.itemContent.tweet_results.result.legacy.reply_count,",
+				"          quote_count = entries.content.itemContent.tweet_results.result.legacy.quote_count,",
+				"          favorite_count = entries.content.itemContent.tweet_results.result.legacy.favorite_count,",
+				"          tweet_possibly_sensitive = entries.content.itemContent.tweet_results.result.legacy.possibly_sensitive,",
+				"          user_id = entries.content.itemContent.tweet_results.result.core.user_results.result.rest_id,",
+				"          is_blue_verified = entries.content.itemContent.tweet_results.result.core.user_results.result.is_blue_verified,",
+				"          followers_count = entries.content.itemContent.tweet_results.result.core.user_results.result.relationship_counts.followers,",
+				"          friends_count = entries.content.itemContent.tweet_results.result.core.user_results.result.relationship_counts.following,",
+				"          account_created_at = entries.content.itemContent.tweet_results.result.core.user_results.result.core.created_at,",
+				"          media_count = entries.content.itemContent.tweet_results.result.core.user_results.result.tweet_counts.media_tweets,",
+				"          account_possibly_sensitive = entries.content.itemContent.tweet_results.result.core.user_results.result.possibly_sensitive,",
+				"          verified = entries.content.itemContent.tweet_results.result.core.user_results.result.verification.verified",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> MapTweetFields",
+				"MapTweetFields filter(!isNull(tweet_created_at) && !isNull(full_text)) ~> DropNullRows",
+				"DropNullRows derive(tweet_created_at_date = toDate(\r",
+				"    toTimestamp(tweet_created_at, 'EEE MMM dd HH:mm:ss Z yyyy')\r",
+				"),",
+				"          tweet_created_at_time = toString(\r",
+				"    toTimestamp(tweet_created_at, 'EEE MMM dd HH:mm:ss Z yyyy'),\r",
+				"    'HH:mm:ss'\r",
+				")) ~> derivedTimestamp",
+				"derivedTimestamp derive(is_weekend = dayOfWeek(tweet_created_at_date) == 1 ||\r",
+				"dayOfWeek(tweet_created_at_date) == 7) ~> derivedIsWeekend",
+				"derivedIsWeekend window(over(tweet_id),",
+				"     asc(tweet_created_at, false),",
+				"     row_num = rowNumber()) ~> DeduplicateTweets",
+				"DeduplicateTweets filter(row_num == 1) ~> KeepUniqueTweets",
+				"KeepUniqueTweets sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SilverTweets"
+			]
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"name": "DS_ADLS_Silver_Tweets_Parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_nvda",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "tweets/2026/09/14",
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

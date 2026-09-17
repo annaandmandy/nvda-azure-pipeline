@@ -1,0 +1,15 @@
+{
+	"name": "adf-nvda-sentiment",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "405ed9c4-1c3f-4164-9f0c-54cb649d73e1",
+		"tenantId": "cb13783b-9b5d-4942-82e1-d42d1f4537be"
+	}
+}

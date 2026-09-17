@@ -1,0 +1,29 @@
+{
+	"name": "DS_RapidAPI_Tweets",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_rapidapi_twitter",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_date": {
+				"type": "string",
+				"defaultValue": "2026-09-14"
+			},
+			"p_next_date": {
+				"type": "string",
+				"defaultValue": "2026-09-15"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@concat(\n  'search-v2?type=Top&count=20&query=%24NVDA%20lang%3Aen%20since%3A',\n  dataset().p_date,\n  '%20until%3A',\n  dataset().p_next_date\n)",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

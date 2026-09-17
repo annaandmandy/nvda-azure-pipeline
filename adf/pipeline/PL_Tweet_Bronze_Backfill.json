@@ -1,0 +1,62 @@
+{
+	"name": "PL_Tweet_Bronze_Backfill",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEachDate",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(\n    0,\n    int(\n        div(\n            sub(\n                ticks(pipeline().parameters.p_end_date),\n                ticks(pipeline().parameters.p_start_date)\n            ),\n            864000000000\n        )\n    )\n)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 3,
+					"activities": [
+						{
+							"name": "RunSingleDayIngestion",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Tweet_Bronze_Test",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"p_date": {
+										"value": "@formatDateTime(\n    addDays(\n        pipeline().parameters.p_start_date,\n        item()\n    ),\n    'yyyy-MM-dd'\n)",
+										"type": "Expression"
+									},
+									"p_next_date": {
+										"value": "@formatDateTime(\n    addDays(\n        pipeline().parameters.p_start_date,\n        add(item(), 1)\n    ),\n    'yyyy-MM-dd'\n)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_start_date": {
+				"type": "string",
+				"defaultValue": "2026-08-15"
+			},
+			"p_end_date": {
+				"type": "string",
+				"defaultValue": "2026-09-15"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-15T20:41:18Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
