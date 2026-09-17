@@ -1,0 +1,284 @@
+{
+	"name": "PL_BackfillRetrain",
+	"properties": {
+		"activities": [
+			{
+				"name": "RunBackfillRetrain",
+				"type": "SynapseNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebook": {
+						"referenceName": "BackfillRetrain",
+						"type": "NotebookReference"
+					},
+					"snapshot": true,
+					"sparkPool": {
+						"referenceName": "sparkNVDA",
+						"type": "BigDataPoolReference"
+					},
+					"executorSize": "Small",
+					"driverSize": "Small"
+				}
+			},
+			{
+				"name": "RunGoldAggregate",
+				"type": "SynapseNotebook",
+				"dependsOn": [
+					{
+						"activity": "RunBackfillRetrain",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebook": {
+						"referenceName": "GoldAggregate",
+						"type": "NotebookReference"
+					},
+					"snapshot": true,
+					"sparkPool": {
+						"referenceName": "sparkNVDA",
+						"type": "BigDataPoolReference"
+					},
+					"executorSize": "Small",
+					"driverSize": "Small"
+				}
+			},
+			{
+				"name": "ResumeSQLPool",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "RunGoldAggregate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://management.azure.com/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/sqlPools/sqlNVDA/resume?api-version=2021-06-01",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "CheckSQLPoolStatus",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "ResumeSQLPool",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://management.azure.com/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/sqlPools/sqlNVDA?api-version=2021-06-01",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "WaitForSQLPool",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "CheckSQLPoolStatus",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 120
+				}
+			},
+			{
+				"name": "CheckSQLPoolOnline",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "WaitForSQLPool",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://management.azure.com/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/sqlPools/sqlNVDA?api-version=2021-06-01",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "IfSQLPoolOnline",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckSQLPoolOnline",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckSQLPoolOnline').output.properties.status, 'Online')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "PauseSQLPoolIfNotReady",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"url": "https://management.azure.com/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/sqlPools/sqlNVDA/pause?api-version=2021-06-01",
+								"connectVia": {
+									"referenceName": "AutoResolveIntegrationRuntime",
+									"type": "IntegrationRuntimeReference"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://management.azure.com/"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "RefreshWarehouse",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[sp_DailyRefresh]"
+							},
+							"linkedServiceName": {
+								"referenceName": "syn-nvda-sentiment-WorkspaceDefaultSqlServer",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"DBName": "sqlNVDA"
+								}
+							}
+						},
+						{
+							"name": "PauseSQLPool",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "RefreshWarehouse",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"url": "https://management.azure.com/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/sqlPools/sqlNVDA/pause?api-version=2021-06-01",
+								"connectVia": {
+									"referenceName": "AutoResolveIntegrationRuntime",
+									"type": "IntegrationRuntimeReference"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://management.azure.com/"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-09-16T18:36:56Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,24 @@
+{
+	"name": "TR_DailyPrediction_6AM_ET",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_DailyPrediction",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-09-17T06:00:00",
+				"timeZone": "Eastern Standard Time"
+			}
+		}
+	}
+}

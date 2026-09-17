@@ -1,0 +1,51 @@
+{
+	"name": "PL_DailyPrediction",
+	"properties": {
+		"activities": [
+			{
+				"name": "RunBlobStreamPredict",
+				"type": "SynapseNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebook": {
+						"referenceName": "BlobStreamPredict",
+						"type": "NotebookReference"
+					},
+					"parameters": {
+						"TEST_SESSION_DATE": {
+							"value": {
+								"value": "@pipeline().parameters.p_session_date",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					},
+					"snapshot": true,
+					"sparkPool": {
+						"referenceName": "sparkNVDA",
+						"type": "BigDataPoolReference"
+					},
+					"executorSize": "Small",
+					"driverSize": "Small"
+				}
+			}
+		],
+		"parameters": {
+			"p_session_date": {
+				"type": "string",
+				"defaultValue": "2026-09-16"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-16T04:28:26Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

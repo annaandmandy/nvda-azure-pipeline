@@ -1,0 +1,197 @@
+{
+	"name": "Stock Volume ingest",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkNVDA",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "2bc03f77-7f31-4e33-8659-0f9940f64d78"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/bigDataPools/sparkNVDA",
+				"name": "sparkNVDA",
+				"type": "Spark",
+				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.5",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"print(\"Stock Bronze notebook ready\")"
+				],
+				"execution_count": 44
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%pip install yfinance --upgrade --quiet"
+				],
+				"execution_count": 45
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"import yfinance as yf\n",
+					"import pandas as pd\n",
+					"from datetime import datetime, timedelta\n",
+					"\n",
+					"print(\"yfinance version:\", yf.__version__)"
+				],
+				"execution_count": 46
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"start_date = \"2024-01-01\"\n",
+					"end_date = \"2026-09-16\"\n",
+					"\n",
+					"end_date_plus_one = (\n",
+					"    datetime.strptime(end_date, \"%Y-%m-%d\")\n",
+					"    + timedelta(days=1)\n",
+					").strftime(\"%Y-%m-%d\")\n",
+					"\n",
+					"nvda = yf.download(\n",
+					"    \"NVDA\",\n",
+					"    start=start_date,\n",
+					"    end=end_date_plus_one,\n",
+					"    auto_adjust=False\n",
+					")\n",
+					""
+				],
+				"execution_count": 47
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Flatten yfinance MultiIndex columns\n",
+					"nvda.columns = nvda.columns.get_level_values(\"Price\")\n",
+					"\n",
+					"# Move Date from index into a normal column\n",
+					"nvda = nvda.reset_index()\n",
+					"\n",
+					"# Keep a stable column order\n",
+					"nvda = nvda[\n",
+					"    [\"Date\", \"Open\", \"High\", \"Low\", \"Close\", \"Adj Close\", \"Volume\"]\n",
+					"]\n",
+					"\n",
+					"print(nvda.columns.tolist())\n",
+					"print(nvda.dtypes)\n",
+					"print(nvda.head())"
+				],
+				"execution_count": 48
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"stock_spark_df = spark.createDataFrame(nvda)\n",
+					"\n",
+					"stock_spark_df.printSchema()\n",
+					"stock_spark_df.show(5, truncate=False)"
+				],
+				"execution_count": 49
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"bronze_path = (\n",
+					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"stock/batch/\"\n",
+					")\n",
+					"\n",
+					"print(bronze_path)"
+				],
+				"execution_count": 50
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"mssparkutils.fs.ls(\n",
+					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					")"
+				],
+				"execution_count": 51
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"stock_spark_df \\\n",
+					"    .coalesce(1) \\\n",
+					"    .write \\\n",
+					"    .mode(\"overwrite\") \\\n",
+					"    .option(\"header\", \"true\") \\\n",
+					"    .csv(bronze_path)\n",
+					"\n",
+					"print(\"Stock Bronze write completed.\")"
+				],
+				"execution_count": 52
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"files = mssparkutils.fs.ls(bronze_path)\n",
+					"\n",
+					"for f in files:\n",
+					"    print(f.name, f.size)"
+				],
+				"execution_count": 53
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"bronze_check = (\n",
+					"    spark.read\n",
+					"    .option(\"header\", \"true\")\n",
+					"    .option(\"inferSchema\", \"true\")\n",
+					"    .csv(bronze_path)\n",
+					")\n",
+					"\n",
+					"print(\"Bronze row count:\", bronze_check.count())\n",
+					"bronze_check.printSchema()\n",
+					"bronze_check.show(5, truncate=False)"
+				],
+				"execution_count": 54
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

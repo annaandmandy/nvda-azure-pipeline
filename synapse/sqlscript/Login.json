@@ -1,0 +1,17 @@
+{
+	"name": "Login",
+	"properties": {
+		"content": {
+			"query": "CREATE USER powerbi_reader\nFROM LOGIN powerbi_reader;\nGO\n\nGRANT SELECT TO powerbi_reader;\nGO\n\nSELECT\n    name,\n    type_desc\nFROM sys.database_principals\nWHERE name = 'powerbi_reader';\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "sqlNVDA",
+				"poolName": "sqlNVDA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

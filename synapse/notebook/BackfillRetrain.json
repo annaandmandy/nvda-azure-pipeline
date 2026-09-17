@@ -1,0 +1,1072 @@
+{
+	"name": "BackfillRetrain",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkNVDA",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "9806597a-78e0-49d4-9370-63e0899f9636"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1",
+				"state": {
+					"59cc6204-b45b-4786-ab35-a51eda76b52a": {
+						"type": "Synapse.DataFrame",
+						"sync_state": {
+							"table": {
+								"rows": [
+									{
+										"0": "2026-09-15",
+										"1": "2026-09-16"
+									},
+									{
+										"0": "2026-09-16",
+										"1": "2026-09-17"
+									}
+								],
+								"schema": [
+									{
+										"key": "0",
+										"name": "prediction_session_date",
+										"type": "date"
+									},
+									{
+										"key": "1",
+										"name": "next_trading_date",
+										"type": "date"
+									}
+								],
+								"truncated": false
+							},
+							"isSummary": false,
+							"language": "scala",
+							"wranglerEntryContext": {
+								"candidateVariableNames": [
+									"unresolved_sessions_df"
+								],
+								"dataframeType": "pyspark"
+							}
+						},
+						"persist_state": {
+							"view": {
+								"type": "details",
+								"chartOptions": {
+									"chartType": "bar",
+									"aggregationType": "count",
+									"categoryFieldKeys": [
+										"0"
+									],
+									"seriesFieldKeys": [
+										"0"
+									],
+									"isStacked": false
+								}
+							}
+						}
+					},
+					"bf6399d5-62ac-4854-a875-4c4eb113ca91": {
+						"type": "Synapse.DataFrame",
+						"sync_state": {
+							"table": {
+								"rows": [
+									{
+										"0": "2026-09-16",
+										"1": "13954890"
+									},
+									{
+										"0": "2026-09-15",
+										"1": "87726200"
+									},
+									{
+										"0": "2026-09-14",
+										"1": "132267200"
+									},
+									{
+										"0": "2026-09-11",
+										"1": "89060100"
+									},
+									{
+										"0": "2026-09-10",
+										"1": "105768000"
+									},
+									{
+										"0": "2026-09-09",
+										"1": "82955500"
+									},
+									{
+										"0": "2026-09-08",
+										"1": "122965600"
+									},
+									{
+										"0": "2026-09-04",
+										"1": "135352400"
+									},
+									{
+										"0": "2026-09-03",
+										"1": "134681600"
+									},
+									{
+										"0": "2026-09-02",
+										"1": "157104700"
+									},
+									{
+										"0": "2026-09-01",
+										"1": "109756200"
+									},
+									{
+										"0": "2026-08-31",
+										"1": "124702700"
+									},
+									{
+										"0": "2026-08-28",
+										"1": "195116400"
+									},
+									{
+										"0": "2026-08-27",
+										"1": "298909800"
+									},
+									{
+										"0": "2026-08-26",
+										"1": "179900000"
+									},
+									{
+										"0": "2026-08-25",
+										"1": "122309000"
+									},
+									{
+										"0": "2026-08-24",
+										"1": "135187300"
+									},
+									{
+										"0": "2026-08-21",
+										"1": "98869300"
+									},
+									{
+										"0": "2026-08-20",
+										"1": "92457000"
+									},
+									{
+										"0": "2026-08-19",
+										"1": "96797300"
+									},
+									{
+										"0": "2026-08-18",
+										"1": "103128200"
+									},
+									{
+										"0": "2026-08-17",
+										"1": "93678700"
+									}
+								],
+								"schema": [
+									{
+										"key": "0",
+										"name": "market_date",
+										"type": "date"
+									},
+									{
+										"key": "1",
+										"name": "actual_volume",
+										"type": "bigint"
+									}
+								],
+								"truncated": false
+							},
+							"isSummary": false,
+							"language": "scala",
+							"wranglerEntryContext": {
+								"dataframeType": "pyspark"
+							}
+						},
+						"persist_state": {
+							"view": {
+								"type": "details",
+								"chartOptions": {
+									"chartType": "bar",
+									"aggregationType": "sum",
+									"categoryFieldKeys": [
+										"0"
+									],
+									"seriesFieldKeys": [
+										"1"
+									],
+									"isStacked": false
+								}
+							}
+						}
+					},
+					"5bf4f89a-1e8a-45a1-a2e4-42bf074f08e6": {
+						"type": "Synapse.DataFrame",
+						"sync_state": {
+							"table": {
+								"rows": [
+									{
+										"0": "2026-09-15",
+										"1": "2026-09-16",
+										"2": "13954890"
+									}
+								],
+								"schema": [
+									{
+										"key": "0",
+										"name": "prediction_session_date",
+										"type": "date"
+									},
+									{
+										"key": "1",
+										"name": "next_trading_date",
+										"type": "date"
+									},
+									{
+										"key": "2",
+										"name": "actual_volume",
+										"type": "bigint"
+									}
+								],
+								"truncated": false
+							},
+							"isSummary": false,
+							"language": "scala",
+							"wranglerEntryContext": {
+								"candidateVariableNames": [
+									"backfillable_sessions_df"
+								],
+								"dataframeType": "pyspark"
+							}
+						},
+						"persist_state": {
+							"view": {
+								"type": "details",
+								"chartOptions": {
+									"chartType": "bar",
+									"aggregationType": "sum",
+									"categoryFieldKeys": [
+										"0"
+									],
+									"seriesFieldKeys": [
+										"2"
+									],
+									"isStacked": false
+								}
+							}
+						}
+					},
+					"c21d713e-f13f-47a5-91ff-5ca06b10a960": {
+						"type": "Synapse.DataFrame",
+						"sync_state": {
+							"table": {
+								"rows": [
+									{
+										"0": "2026-09-15",
+										"1": "2026-09-16",
+										"2": "13954890"
+									}
+								],
+								"schema": [
+									{
+										"key": "0",
+										"name": "prediction_session_date",
+										"type": "date"
+									},
+									{
+										"key": "1",
+										"name": "next_trading_date",
+										"type": "date"
+									},
+									{
+										"key": "2",
+										"name": "actual_volume",
+										"type": "bigint"
+									}
+								],
+								"truncated": false
+							},
+							"isSummary": false,
+							"language": "scala",
+							"wranglerEntryContext": {
+								"candidateVariableNames": [
+									"backfillable_sessions_df"
+								],
+								"dataframeType": "pyspark"
+							}
+						},
+						"persist_state": {
+							"view": {
+								"type": "details",
+								"chartOptions": {
+									"chartType": "bar",
+									"aggregationType": "sum",
+									"categoryFieldKeys": [
+										"0"
+									],
+									"seriesFieldKeys": [
+										"2"
+									],
+									"isStacked": false
+								}
+							}
+						}
+					}
+				}
+			},
+			"enableDebugMode": false,
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b5c1f48c-5356-499d-96a4-9dc5b2c118c7/resourceGroups/rg-nvda-sentiment-dev/providers/Microsoft.Synapse/workspaces/syn-nvda-sentiment/bigDataPools/sparkNVDA",
+				"name": "sparkNVDA",
+				"type": "Spark",
+				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.5",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from datetime import datetime, timedelta\n",
+					"from zoneinfo import ZoneInfo\n",
+					"\n",
+					"import yfinance as yf\n",
+					"from pyspark.sql import functions as F\n",
+					"from pyspark.ml import PipelineModel\n",
+					"\n",
+					"ET = ZoneInfo(\"America/New_York\")\n",
+					"\n",
+					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
+					"\n",
+					"HISTORICAL_GOLD_PATH = (\n",
+					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
+					"    \"tweets_stock/historical/\"\n",
+					")\n",
+					"\n",
+					"MODEL_PATH = (\n",
+					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
+					"    \"models/nvda_volume_rf/\"\n",
+					")\n",
+					"\n",
+					"PREDICTION_ROOT = (\n",
+					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
+					"    \"prediction/streaming/\"\n",
+					")\n",
+					"\n",
+					"print(\"Historical Gold:\", HISTORICAL_GOLD_PATH)\n",
+					"print(\"Model:\", MODEL_PATH)\n",
+					"print(\"Prediction:\", PREDICTION_ROOT)"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"BACKFILL_DATE = \"2026-09-15\"\n",
+					"\n",
+					"start_date = BACKFILL_DATE\n",
+					"end_date = (\n",
+					"    datetime.strptime(BACKFILL_DATE, \"%Y-%m-%d\")\n",
+					"    + timedelta(days=1)\n",
+					").strftime(\"%Y-%m-%d\")\n",
+					"\n",
+					"nvda = yf.download(\n",
+					"    \"NVDA\",\n",
+					"    start=start_date,\n",
+					"    end=end_date,\n",
+					"    auto_adjust=False,\n",
+					"    progress=False\n",
+					")\n",
+					"\n",
+					"print(nvda)"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if nvda.empty:\n",
+					"    raise ValueError(\n",
+					"        f\"No completed NVDA market data available for {BACKFILL_DATE}\"\n",
+					"    )\n",
+					"\n",
+					"actual_volume = int(\n",
+					"    nvda[\"Volume\"].iloc[0].item()\n",
+					")\n",
+					"\n",
+					"print(\"Backfill date:\", BACKFILL_DATE)\n",
+					"print(\"Actual NVDA volume:\", f\"{actual_volume:,}\")"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"historical_gold_df = spark.read.parquet(\n",
+					"    HISTORICAL_GOLD_PATH\n",
+					")\n",
+					"\n",
+					"print(\"Historical rows:\", historical_gold_df.count())\n",
+					"\n",
+					"historical_gold_df.select(\n",
+					"    \"prediction_session_date\",\n",
+					"    \"next_trading_date\",\n",
+					"    \"next_available_volume\"\n",
+					").orderBy(\n",
+					"    F.col(\"prediction_session_date\").desc()\n",
+					").show(30, truncate=False)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"(\n",
+					"    historical_gold_df\n",
+					"    .groupBy(\n",
+					"        \"prediction_session_date\",\n",
+					"        \"next_trading_date\"\n",
+					"    )\n",
+					"    .agg(\n",
+					"        F.first(\"next_available_volume\").alias(\"actual_next_volume\"),\n",
+					"        F.count(\"*\").alias(\"tweet_count\")\n",
+					"    )\n",
+					"    .orderBy(\n",
+					"        F.col(\"prediction_session_date\").desc()\n",
+					"    )\n",
+					"    .show(30, truncate=False)\n",
+					")"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from datetime import date, timedelta\n",
+					"\n",
+					"# Pull enough recent market history to resolve outstanding labels.\n",
+					"# yfinance `end` is exclusive, so use tomorrow.\n",
+					"end_date = date.today() + timedelta(days=1)\n",
+					"start_date = date.today() - timedelta(days=30)\n",
+					"\n",
+					"print(f\"Downloading NVDA: {start_date} -> {end_date} (end exclusive)\")\n",
+					"\n",
+					"stock_pdf = yf.download(\n",
+					"    \"NVDA\",\n",
+					"    start=start_date.strftime(\"%Y-%m-%d\"),\n",
+					"    end=end_date.strftime(\"%Y-%m-%d\"),\n",
+					"    auto_adjust=False,\n",
+					"    progress=False\n",
+					")\n",
+					"\n",
+					"# yfinance may return MultiIndex columns\n",
+					"if hasattr(stock_pdf.columns, \"levels\"):\n",
+					"    stock_pdf.columns = stock_pdf.columns.get_level_values(0)\n",
+					"\n",
+					"stock_pdf = stock_pdf.reset_index()\n",
+					"\n",
+					"stock_lookup = {\n",
+					"    row[\"Date\"].strftime(\"%Y-%m-%d\"): int(row[\"Volume\"])\n",
+					"    for _, row in stock_pdf.iterrows()\n",
+					"}\n",
+					"\n",
+					"print(\"Available market dates:\")\n",
+					"for market_date, volume in stock_lookup.items():\n",
+					"    print(market_date, f\"{volume:,}\")"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"unresolved_sessions_df = (\n",
+					"    historical_gold_df\n",
+					"    .filter(\n",
+					"        F.col(\"next_available_volume\").isNull()\n",
+					"    )\n",
+					"    .select(\n",
+					"        \"prediction_session_date\",\n",
+					"        \"next_trading_date\"\n",
+					"    )\n",
+					"    .distinct()\n",
+					"    .orderBy(\"prediction_session_date\")\n",
+					")\n",
+					"\n",
+					"display(unresolved_sessions_df)"
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"from pyspark.sql.types import StructType, StructField, DateType, LongType\n",
+					"from datetime import datetime\n",
+					"\n",
+					"ground_truth_rows = [\n",
+					"    (\n",
+					"        datetime.strptime(date, \"%Y-%m-%d\").date(),\n",
+					"        volume\n",
+					"    )\n",
+					"    for date, volume in stock_lookup.items()\n",
+					"]\n",
+					"\n",
+					"ground_truth_schema = StructType([\n",
+					"    StructField(\"market_date\", DateType(), False),\n",
+					"    StructField(\"actual_volume\", LongType(), False)\n",
+					"])\n",
+					"\n",
+					"ground_truth_df = spark.createDataFrame(\n",
+					"    ground_truth_rows,\n",
+					"    ground_truth_schema\n",
+					")\n",
+					"\n",
+					"display(\n",
+					"    ground_truth_df.orderBy(\n",
+					"        F.col(\"market_date\").desc()\n",
+					"    )\n",
+					")"
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"backfillable_sessions_df = (\n",
+					"    unresolved_sessions_df\n",
+					"    .join(\n",
+					"        ground_truth_df,\n",
+					"        unresolved_sessions_df[\"next_trading_date\"]\n",
+					"        == ground_truth_df[\"market_date\"],\n",
+					"        \"inner\"\n",
+					"    )\n",
+					"    .select(\n",
+					"        \"prediction_session_date\",\n",
+					"        \"next_trading_date\",\n",
+					"        \"actual_volume\"\n",
+					"    )\n",
+					")\n",
+					"\n",
+					"display(backfillable_sessions_df)"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"backfill_count = backfillable_sessions_df.count()\n",
+					"\n",
+					"print(\"Backfillable sessions:\", backfill_count)\n",
+					"\n",
+					"if backfill_count == 0:\n",
+					"    print(\"No completed ground truth is available.\")\n",
+					"    print(\"Historical Gold remains unchanged.\")\n",
+					"    print(\"Model remains unchanged.\")\n",
+					"else:\n",
+					"    display(backfillable_sessions_df)"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if backfill_count > 0:\n",
+					"\n",
+					"    labels_df = (\n",
+					"        backfillable_sessions_df\n",
+					"        .select(\n",
+					"            F.col(\"next_trading_date\"),\n",
+					"            F.col(\"actual_volume\")\n",
+					"                .cast(\"long\")\n",
+					"                .alias(\"backfilled_volume\")\n",
+					"        )\n",
+					"    )\n",
+					"\n",
+					"    updated_gold_df = (\n",
+					"        historical_gold_df\n",
+					"        .join(\n",
+					"            labels_df,\n",
+					"            on=\"next_trading_date\",\n",
+					"            how=\"left\"\n",
+					"        )\n",
+					"        .withColumn(\n",
+					"            \"next_available_volume\",\n",
+					"            F.coalesce(\n",
+					"                F.col(\"next_available_volume\"),\n",
+					"                F.col(\"backfilled_volume\")\n",
+					"            )\n",
+					"        )\n",
+					"        .drop(\"backfilled_volume\")\n",
+					"    )\n",
+					"\n",
+					"    print(\n",
+					"        \"Remaining unlabeled rows:\",\n",
+					"        updated_gold_df\n",
+					"        .filter(\n",
+					"            F.col(\"next_available_volume\").isNull()\n",
+					"        )\n",
+					"        .count()\n",
+					"    )"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"prediction_archive_df = (\n",
+					"    spark.read\n",
+					"    .option(\"recursiveFileLookup\", \"true\")\n",
+					"    .parquet(PREDICTION_ROOT)\n",
+					")\n",
+					"\n",
+					"prediction_archive_df.select(\n",
+					"    \"prediction_session_date\",\n",
+					"    \"predicted_next_volume\",\n",
+					"    \"tweet_count\",\n",
+					"    \"model_version\",\n",
+					"    \"prediction_generated_at_utc\"\n",
+					").show(truncate=False)"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"session_target_df = (\n",
+					"    historical_gold_df\n",
+					"    .select(\n",
+					"        \"prediction_session_date\",\n",
+					"        \"next_trading_date\"\n",
+					"    )\n",
+					"    .distinct()\n",
+					")\n",
+					"\n",
+					"prediction_with_target_df = (\n",
+					"    prediction_archive_df.alias(\"p\")\n",
+					"    .join(\n",
+					"        session_target_df.alias(\"s\"),\n",
+					"        on=\"prediction_session_date\",\n",
+					"        how=\"left\"\n",
+					"    )\n",
+					")\n",
+					"\n",
+					"prediction_with_target_df.select(\n",
+					"    \"prediction_session_date\",\n",
+					"    \"next_trading_date\",\n",
+					"    \"predicted_next_volume\",\n",
+					"    \"tweet_count\"\n",
+					").show(truncate=False)"
+				],
+				"execution_count": 14
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"evaluated_predictions_df = (\n",
+					"    prediction_with_target_df.alias(\"p\")\n",
+					"    .join(\n",
+					"        ground_truth_df.alias(\"g\"),\n",
+					"        F.col(\"p.next_trading_date\")\n",
+					"        == F.col(\"g.market_date\"),\n",
+					"        \"inner\"\n",
+					"    )\n",
+					"    .withColumn(\n",
+					"        \"absolute_error\",\n",
+					"        F.abs(\n",
+					"            F.col(\"actual_volume\")\n",
+					"            - F.col(\"predicted_next_volume\")\n",
+					"        )\n",
+					"    )\n",
+					"    .withColumn(\n",
+					"        \"relative_error\",\n",
+					"        F.col(\"absolute_error\")\n",
+					"        / F.col(\"actual_volume\")\n",
+					"    )\n",
+					"    .withColumn(\n",
+					"        \"prediction_accuracy\",\n",
+					"        F.lit(1.0)\n",
+					"        - F.col(\"relative_error\")\n",
+					"    )\n",
+					")"
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"evaluated_predictions_df.select(\n",
+					"    \"prediction_session_date\",\n",
+					"    \"next_trading_date\",\n",
+					"    F.round(\n",
+					"        \"predicted_next_volume\", 0\n",
+					"    ).alias(\"predicted_volume\"),\n",
+					"    \"actual_volume\",\n",
+					"    F.round(\n",
+					"        \"absolute_error\", 0\n",
+					"    ).alias(\"absolute_error\"),\n",
+					"    F.round(\n",
+					"        \"relative_error\", 4\n",
+					"    ).alias(\"relative_error\"),\n",
+					"    F.round(\n",
+					"        \"prediction_accuracy\", 4\n",
+					"    ).alias(\"prediction_accuracy\")\n",
+					").show(truncate=False)"
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"RETRAIN_THRESHOLD = 0.01\n",
+					"\n",
+					"retrain_candidates_df = (\n",
+					"    evaluated_predictions_df\n",
+					"    .filter(\n",
+					"        F.col(\"relative_error\")\n",
+					"        > F.lit(RETRAIN_THRESHOLD)\n",
+					"    )\n",
+					")\n",
+					"\n",
+					"retrain_required = (\n",
+					"    retrain_candidates_df.limit(1).count()\n",
+					"    > 0\n",
+					")\n",
+					"\n",
+					"print(\n",
+					"    \"Retrain threshold:\",\n",
+					"    f\"{RETRAIN_THRESHOLD:.1%}\"\n",
+					")\n",
+					"\n",
+					"print(\n",
+					"    \"Retrain required:\",\n",
+					"    retrain_required\n",
+					")"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"HISTORICAL_GOLD_STAGING_PATH = (\n",
+					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
+					"    \"tweets_stock/historical_staging/\"\n",
+					")"
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if backfill_count > 0:\n",
+					"\n",
+					"    print(\"Writing updated Historical Gold to staging...\")\n",
+					"\n",
+					"    (\n",
+					"        updated_gold_df\n",
+					"        .write\n",
+					"        .mode(\"overwrite\")\n",
+					"        .parquet(HISTORICAL_GOLD_STAGING_PATH)\n",
+					"    )\n",
+					"\n",
+					"    # Verify staging before replacing production\n",
+					"    staged_df = spark.read.parquet(\n",
+					"        HISTORICAL_GOLD_STAGING_PATH\n",
+					"    )\n",
+					"\n",
+					"    staged_rows = staged_df.count()\n",
+					"\n",
+					"    staged_unlabeled = (\n",
+					"        staged_df\n",
+					"        .filter(F.col(\"next_available_volume\").isNull())\n",
+					"        .count()\n",
+					"    )\n",
+					"\n",
+					"    print(\"Staged rows:\", staged_rows)\n",
+					"    print(\"Remaining unlabeled:\", staged_unlabeled)\n",
+					"\n",
+					"else:\n",
+					"    print(\"No Gold update required.\")"
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.ml import Pipeline\n",
+					"from pyspark.ml.feature import (\n",
+					"    StringIndexer,\n",
+					"    OneHotEncoder,\n",
+					"    VectorAssembler,\n",
+					"    StandardScaler\n",
+					")\n",
+					"from pyspark.ml.regression import RandomForestRegressor\n",
+					"\n",
+					"\n",
+					"NUMERIC_FEATURES = [\n",
+					"    \"sentiment_score\",\n",
+					"    \"interaction_score\",\n",
+					"    \"favorite_ratio\",\n",
+					"    \"reply_ratio\",\n",
+					"    \"followers_count\",\n",
+					"    \"friends_count\",\n",
+					"    \"media_count\",\n",
+					"    \"account_age_days\",\n",
+					"    \"credibility_score\"\n",
+					"]\n",
+					"\n",
+					"BOOLEAN_FEATURES = [\n",
+					"    \"is_viral\",\n",
+					"    \"is_blue_verified\",\n",
+					"    \"is_new_account\",\n",
+					"    \"is_influencer\",\n",
+					"    \"is_weekend\"\n",
+					"]\n",
+					"\n",
+					"LABEL_COL = \"next_available_volume\""
+				],
+				"execution_count": 20
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"def prepare_ml_columns(df):\n",
+					"\n",
+					"    result = df\n",
+					"\n",
+					"    for c in NUMERIC_FEATURES:\n",
+					"        result = result.withColumn(\n",
+					"            c,\n",
+					"            F.coalesce(\n",
+					"                F.col(c).cast(\"double\"),\n",
+					"                F.lit(0.0)\n",
+					"            )\n",
+					"        )\n",
+					"\n",
+					"    for c in BOOLEAN_FEATURES:\n",
+					"        result = result.withColumn(\n",
+					"            c,\n",
+					"            F.coalesce(\n",
+					"                F.col(c).cast(\"boolean\"),\n",
+					"                F.lit(False)\n",
+					"            )\n",
+					"        )\n",
+					"\n",
+					"    result = result.withColumn(\n",
+					"        LABEL_COL,\n",
+					"        F.col(LABEL_COL).cast(\"double\")\n",
+					"    )\n",
+					"\n",
+					"    return result"
+				],
+				"execution_count": 21
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"numTrees = 50\n",
+					"maxDepth = 5\n",
+					"minInstancesPerNode = 5\n",
+					"\n",
+					"def build_training_pipeline():\n",
+					"\n",
+					"    day_indexer = StringIndexer(\n",
+					"        inputCol=\"day_of_week\",\n",
+					"        outputCol=\"day_of_week_index\",\n",
+					"        handleInvalid=\"keep\"\n",
+					"    )\n",
+					"\n",
+					"    day_encoder = OneHotEncoder(\n",
+					"        inputCols=[\"day_of_week_index\"],\n",
+					"        outputCols=[\"day_of_week_ohe\"],\n",
+					"        handleInvalid=\"keep\"\n",
+					"    )\n",
+					"\n",
+					"    assembler = VectorAssembler(\n",
+					"        inputCols=(\n",
+					"            NUMERIC_FEATURES\n",
+					"            + BOOLEAN_FEATURES\n",
+					"            + [\"day_of_week_ohe\"]\n",
+					"        ),\n",
+					"        outputCol=\"features_raw\",\n",
+					"        handleInvalid=\"keep\"\n",
+					"    )\n",
+					"\n",
+					"    scaler = StandardScaler(\n",
+					"        inputCol=\"features_raw\",\n",
+					"        outputCol=\"features\",\n",
+					"        withStd=True,\n",
+					"        withMean=False\n",
+					"    )\n",
+					"\n",
+					"    rf = RandomForestRegressor(\n",
+					"        featuresCol=\"features\",\n",
+					"        labelCol=LABEL_COL,\n",
+					"        predictionCol=\"prediction\",\n",
+					"        numTrees=50,\n",
+					"        maxDepth=5,\n",
+					"        minInstancesPerNode=5,\n",
+					"        seed=42\n",
+					"    )\n",
+					"\n",
+					"    return Pipeline(\n",
+					"        stages=[\n",
+					"            day_indexer,\n",
+					"            day_encoder,\n",
+					"            assembler,\n",
+					"            scaler,\n",
+					"            rf\n",
+					"        ]\n",
+					"    )"
+				],
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if retrain_required:\n",
+					"\n",
+					"    print(\"Retraining triggered.\")\n",
+					"\n",
+					"    # Use updated Gold if labels were just backfilled\n",
+					"    training_source_df = (\n",
+					"        updated_gold_df\n",
+					"        if backfill_count > 0\n",
+					"        else historical_gold_df\n",
+					"    )\n",
+					"\n",
+					"    training_df = (\n",
+					"        training_source_df\n",
+					"        .filter(\n",
+					"            F.col(LABEL_COL).isNotNull()\n",
+					"        )\n",
+					"    )\n",
+					"\n",
+					"    training_df = prepare_ml_columns(\n",
+					"        training_df\n",
+					"    )\n",
+					"\n",
+					"    training_rows = training_df.count()\n",
+					"\n",
+					"    training_sessions = (\n",
+					"        training_df\n",
+					"        .select(\"prediction_session_date\")\n",
+					"        .distinct()\n",
+					"        .count()\n",
+					"    )\n",
+					"\n",
+					"    print(\"Training rows:\", training_rows)\n",
+					"    print(\"Training sessions:\", training_sessions)\n",
+					"\n",
+					"    pipeline = build_training_pipeline()\n",
+					"\n",
+					"    new_model = pipeline.fit(\n",
+					"        training_df\n",
+					"    )\n",
+					"\n",
+					"    print(\"Retraining complete.\")\n",
+					"\n",
+					"else:\n",
+					"\n",
+					"    print(\n",
+					"        \"Retraining skipped: \"\n",
+					"        \"no newly evaluated prediction exceeded threshold.\"\n",
+					"    )"
+				],
+				"execution_count": 23
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"MODEL_STAGING_PATH = (\n",
+					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
+					"    \"models/nvda_volume_rf_staging/\"\n",
+					")"
+				],
+				"execution_count": 24
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"if retrain_required:\n",
+					"\n",
+					"    print(\"Saving candidate model to staging...\")\n",
+					"\n",
+					"    (\n",
+					"        new_model.write()\n",
+					"        .overwrite()\n",
+					"        .save(MODEL_STAGING_PATH)\n",
+					"    )\n",
+					"\n",
+					"    # Smoke test the saved model\n",
+					"    candidate_model = PipelineModel.load(\n",
+					"        MODEL_STAGING_PATH\n",
+					"    )\n",
+					"\n",
+					"    smoke_df = candidate_model.transform(\n",
+					"        training_df.limit(5)\n",
+					"    )\n",
+					"\n",
+					"    smoke_count = (\n",
+					"        smoke_df\n",
+					"        .filter(F.col(\"prediction\").isNotNull())\n",
+					"        .count()\n",
+					"    )\n",
+					"\n",
+					"    if smoke_count == 0:\n",
+					"        raise RuntimeError(\n",
+					"            \"Candidate model smoke test failed.\"\n",
+					"        )\n",
+					"\n",
+					"    print(\n",
+					"        \"Candidate model validated successfully.\"\n",
+					"    )\n",
+					"\n",
+					"else:\n",
+					"    print(\"No candidate model created.\")"
+				],
+				"execution_count": 25
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}
