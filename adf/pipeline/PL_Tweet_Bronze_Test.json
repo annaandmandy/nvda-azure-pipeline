@@ -22,7 +22,7 @@
 						"requestMethod": "GET",
 						"additionalHeaders": {
 							"x-rapidapi-host": "twitter241.p.rapidapi.com",
-							"x-rapidapi-key": "727db0b576mshe775ec176c92d86p14ef4bjsn4a7020445f69"
+							"x-rapidapi-key": "<RAPIDAPI_KEY_FROM_SECRET_STORE>"
 						}
 					},
 					"sink": {
