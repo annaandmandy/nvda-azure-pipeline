@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Local secrets and environment files
+.env
+.env.*
+*.env
+local.settings.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python_packages/
+
+# Node.js
+node_modules/
+
+# Build and test output
+build/
+dist/
+bin/
+obj/
+.pytest_cache/
+*.log
+
