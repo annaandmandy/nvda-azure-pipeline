@@ -11,4 +11,4 @@ Run them in numeric order:
 
 Before execution, replace `<storage-account-name>` with the target ADLS Gen2 storage account name. No passwords, access keys, SAS tokens, or connection strings belong in these files.
 
-`Login.json` is intentionally excluded because environment-specific database principals and grants should be managed separately from the portable data model.
+Environment-specific database principals and grants are intentionally excluded and should be managed separately from the portable data model.
