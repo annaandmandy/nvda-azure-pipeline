@@ -209,7 +209,8 @@ No API keys, passwords, storage access keys, SAS tokens, or connection strings s
 - Storage access uses `DefaultAzureCredential` and Managed Identity.
 - `local.settings.json` and `.env` files are excluded by `.gitignore`.
 - `local.settings.example.json` contains placeholders only.
-- Environment-specific storage and workspace names must be replaced or parameterized for a new deployment.
+- Synapse notebook artifacts use `<storage-account-name>` instead of the original ADLS account name.
+- Native ADF and Synapse connection artifacts retain non-secret resource identifiers and service endpoints that describe the original deployment; replace them for a new environment.
 - The standalone SQL scripts use `<storage-account-name>` instead of a live ADLS hostname.
 
 ## Local Function configuration

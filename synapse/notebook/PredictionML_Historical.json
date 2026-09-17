@@ -52,7 +52,7 @@
 					"from pyspark.sql import functions as F\n",
 					"\n",
 					"GOLD_PATH = (\n",
-					"    \"abfss://gold@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://gold@<storage-account-name>.dfs.core.windows.net/\"\n",
 					"    \"tweets_stock/historical/\"\n",
 					")\n",
 					"\n",
@@ -739,7 +739,7 @@
 				"cell_type": "code",
 				"source": [
 					"MODEL_PATH = (\n",
-					"    \"abfss://gold@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://gold@<storage-account-name>.dfs.core.windows.net/\"\n",
 					"    \"models/nvda_volume_rf/\"\n",
 					")\n",
 					"\n",

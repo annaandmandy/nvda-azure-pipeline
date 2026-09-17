@@ -52,7 +52,7 @@
 					"from pyspark.sql import functions as F\n",
 					"\n",
 					"bronze_path = (\n",
-					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
 					"    \"stock/batch/\"\n",
 					")\n",
 					"\n",
@@ -134,7 +134,7 @@
 				"cell_type": "code",
 				"source": [
 					"silver_path = (\n",
-					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/\"\n",
 					"    \"stock/\"\n",
 					")\n",
 					"\n",
@@ -175,7 +175,7 @@
 				"source": [
 					"from pyspark.sql import functions as F\n",
 					"stocks_check = spark.read.parquet(\n",
-					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/stock/\"\n",
+					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/stock/\"\n",
 					")\n",
 					"\n",
 					"stocks_check.agg(\n",

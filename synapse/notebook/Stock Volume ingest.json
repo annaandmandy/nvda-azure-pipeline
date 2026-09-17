@@ -126,7 +126,7 @@
 				"cell_type": "code",
 				"source": [
 					"bronze_path = (\n",
-					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
 					"    \"stock/batch/\"\n",
 					")\n",
 					"\n",
@@ -138,7 +138,7 @@
 				"cell_type": "code",
 				"source": [
 					"mssparkutils.fs.ls(\n",
-					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
 					")"
 				],
 				"execution_count": 51

@@ -58,7 +58,7 @@
 					"\n",
 					"ET = ZoneInfo(\"America/New_York\")\n",
 					"\n",
-					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
+					"STORAGE_ACCOUNT = \"<storage-account-name>\"\n",
 					"\n",
 					"HISTORICAL_GOLD_PATH = (\n",
 					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",

@@ -57,7 +57,7 @@
 					"\n",
 					"ET = ZoneInfo(\"America/New_York\")\n",
 					"\n",
-					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
+					"STORAGE_ACCOUNT = \"<storage-account-name>\"\n",
 					"\n",
 					"STREAM_ROOT = (\n",
 					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/stream\"\n",
