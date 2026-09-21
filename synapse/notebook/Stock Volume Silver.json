@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f9dd3af2-6746-4b2a-83ab-2c1dd7912501"
+				"spark.autotune.trackingId": "57d3afd6-30b5-449a-8316-59487f026cad"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -52,7 +55,7 @@
 					"from pyspark.sql import functions as F\n",
 					"\n",
 					"bronze_path = (\n",
-					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"stock/batch/\"\n",
 					")\n",
 					"\n",
@@ -134,7 +137,7 @@
 				"cell_type": "code",
 				"source": [
 					"silver_path = (\n",
-					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"stock/\"\n",
 					")\n",
 					"\n",
@@ -175,7 +178,7 @@
 				"source": [
 					"from pyspark.sql import functions as F\n",
 					"stocks_check = spark.read.parquet(\n",
-					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/stock/\"\n",
+					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/stock/\"\n",
 					")\n",
 					"\n",
 					"stocks_check.agg(\n",
@@ -191,13 +194,15 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}

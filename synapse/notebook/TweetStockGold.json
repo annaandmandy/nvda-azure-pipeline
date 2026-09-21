@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "eddd7050-5047-4f22-b385-802bab2371be"
+				"spark.autotune.trackingId": "69428423-b14a-41d6-bd6a-f0efb56c343c"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -67,7 +70,7 @@
 					"# Configuration\n",
 					"# ============================================================\n",
 					"\n",
-					"STORAGE_ACCOUNT = \"<storage-account-name>\"\n",
+					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
 					"\n",
 					"TWEET_SILVER_PATH = (\n",
 					"    f\"abfss://silver@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
@@ -804,7 +807,7 @@
 					"from pyspark.sql import functions as F\n",
 					"\n",
 					"historical_silver_path = (\n",
-					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"tweets/historical/\"\n",
 					")\n",
 					"\n",
@@ -832,7 +835,8 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}

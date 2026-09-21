@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "2bc03f77-7f31-4e33-8659-0f9940f64d78"
+				"spark.autotune.trackingId": "ccbdf8e7-3001-475a-98a3-aa740864c687"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -126,7 +129,7 @@
 				"cell_type": "code",
 				"source": [
 					"bronze_path = (\n",
-					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"stock/batch/\"\n",
 					")\n",
 					"\n",
@@ -138,7 +141,7 @@
 				"cell_type": "code",
 				"source": [
 					"mssparkutils.fs.ls(\n",
-					"    \"abfss://bronze@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					")"
 				],
 				"execution_count": 51
@@ -187,7 +190,8 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}

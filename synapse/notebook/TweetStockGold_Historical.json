@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d408e600-3fd7-46b9-860e-eab990ee0353"
+				"spark.autotune.trackingId": "9d388d9c-5391-44e6-8656-2108fe4cf861"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -70,17 +73,17 @@
 					"# =========================\n",
 					"\n",
 					"TWEET_SILVER_PATH = (\n",
-					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"tweets/historical/\"\n",
 					")\n",
 					"\n",
 					"STOCK_SILVER_PATH = (\n",
-					"    \"abfss://silver@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"stock/\"\n",
 					")\n",
 					"\n",
 					"HISTORICAL_GOLD_PATH = (\n",
-					"    \"abfss://gold@<storage-account-name>.dfs.core.windows.net/\"\n",
+					"    \"abfss://gold@stnvdaanna2026.dfs.core.windows.net/\"\n",
 					"    \"tweets_stock/historical/\"\n",
 					")\n",
 					"\n",
@@ -1095,7 +1098,8 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}
