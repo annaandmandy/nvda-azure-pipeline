@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "9806597a-78e0-49d4-9370-63e0899f9636"
+				"spark.autotune.trackingId": "23a5267f-5fa6-4b7d-a5c8-3d4794e465b6"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -58,7 +61,7 @@
 					"\n",
 					"ET = ZoneInfo(\"America/New_York\")\n",
 					"\n",
-					"STORAGE_ACCOUNT = \"<storage-account-name>\"\n",
+					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
 					"\n",
 					"HISTORICAL_GOLD_PATH = (\n",
 					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
@@ -85,14 +88,16 @@
 				"cell_type": "code",
 				"source": [
 					"# Market data is fetched below for all outstanding labels.\n",
-					"# Do not gate scheduled runs on a hard-coded diagnostic date.\n"
+					"# Do not gate scheduled runs on a hard-coded diagnostic date.\n",
+					""
 				],
 				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
 				"source": [
-					"# Actual volumes are keyed by target market date in ground_truth_df.\n"
+					"# Actual volumes are keyed by target market date in ground_truth_df.\n",
+					""
 				],
 				"execution_count": 4
 			},
@@ -168,7 +173,8 @@
 					"    if pd.notna(row[\"Volume\"]) and row[\"Volume\"] > 0\n",
 					"    and row[\"Date\"].date() < end_date\n",
 					"}\n",
-					"print(\"Available completed market dates:\", sorted(stock_lookup))\n"
+					"print(\"Available completed market dates:\", sorted(stock_lookup))\n",
+					""
 				],
 				"execution_count": 7
 			},
@@ -492,7 +498,8 @@
 					"    print(\"Published Historical Gold rows:\", staged_rows)\n",
 					"    print(\"Remaining unlabeled:\", staged_unlabeled)\n",
 					"else:\n",
-					"    print(\"No Gold update required.\")\n"
+					"    print(\"No Gold update required.\")\n",
+					""
 				],
 				"execution_count": 19
 			},
@@ -737,7 +744,8 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}
