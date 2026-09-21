@@ -67,3 +67,61 @@ Run with Python, PySpark 3.5 and Java 17:
 ```sh
 python -m unittest discover -s tests
 ```
+
+## Follow-up: actual exists but prediction history remains Pending
+
+The original GoldAggregate prediction-history cell (cell index 6) grouped labels
+by `(prediction_session_date, next_trading_date)` and joined predictions only on
+`prediction_session_date`. It did use `next_available_volume`, but restricted
+actual lookup to the same historical session. A label for September 17 elsewhere
+in production could not fill the September 16 prediction's null actual. It also
+ignored a target date already present in an archived prediction.
+
+The follow-up separates session-to-target mapping from the market-date label
+lookup. Prediction `target_date` now joins historical `next_trading_date`, and
+actual volume comes from `next_available_volume`. Neither `current_volume` nor
+`prediction_session_date` is used as the target-market label. Positive finite
+labels are deduplicated by target date; conflicting actuals fail explicitly.
+
+There was also an independent source configuration in the final evaluation cell:
+reconfiguring the first cell's GOLD_PATH did not affect its later hard-coded
+HISTORICAL_GOLD_PATH. The notebook now has one STORAGE_ACCOUNT setting and reuses
+GOLD_PATH and AGG_ROOT throughout, refreshes the production path before evaluation,
+and prints its exact source/output paths plus the available target-date labels.
+The output schema and ext_PredictionHistory/FactPrediction SQL remain unchanged.
+
+### Live verification after deployment
+
+Set GoldAggregate's STORAGE_ACCOUNT to the same account used by BackfillRetrain,
+publish the updated notebook and pipeline in Synapse, then run PL_BackfillRetrain.
+In RunGoldAggregate output, check:
+
+1. `Prediction evaluation production source` matches BackfillRetrain's
+   `Historical Gold` path exactly, including account and `historical/` suffix.
+2. `Available production labels by target date` contains September 17 with
+   94191300. Staging alone is not evidence that production has this label.
+3. `Prediction evaluation results` contains September 16 → September 17 with
+   actual 94191300, calculated accuracy and Evaluated status.
+4. Run the existing SQL verification script after RefreshWarehouse completes.
+
+If step 2 fails, inspect production directly in that notebook session:
+
+```python
+(spark.read.parquet(GOLD_PATH)
+ .filter(F.to_date("next_trading_date") == F.lit("2026-09-17").cast("date"))
+ .select("prediction_session_date", "next_trading_date", "next_available_volume")
+ .distinct().show(truncate=False))
+```
+
+A missing production label remains Pending intentionally: evaluation must not
+silently substitute staging or fabricate the reported actual. Check the deployed
+BackfillRetrain publication and source account before rerunning aggregation.
+
+The new regression explicitly asserts actual_volume == 94191300 and status !=
+Pending for September 16 → 17, with the label on other historical rows, a distinct
+current_volume and a different September 18 label to catch incorrect date joins.
+It also tests configured production vs a stale staging path, archived targets
+without session mappings, and staging-only actuals remaining Pending. The prior
+code fails this fixture with `None != 94191300`; all four updated tests pass.
+These tests run actual Spark transformations locally. Azure runtime/storage was
+not directly accessible; the user confirmed the live notebook is synced to GitHub.

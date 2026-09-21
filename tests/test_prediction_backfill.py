@@ -31,6 +31,65 @@ class PredictionBackfillTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.spark.stop()
 
+    def test_target_label_lookup_uses_configured_production(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            production = str(Path(tmp) / 'configured-account' / 'historical')
+            staging = str(Path(tmp) / 'historical_staging')
+            historical = self.spark.createDataFrame([
+                # The prediction's own historical session has not been labeled.
+                ('2026-09-16', '2026-09-17', None, 111111),
+                # A label can exist on another session (or without a session).
+                ('2026-09-15', '2026-09-17', 94191300, 222222),
+                (None, '2026-09-17', 94191300, 222222),
+                # Guard against joining target_date to prediction_session_date.
+                ('2026-09-17', '2026-09-18', 77777777, 333333),
+            ], 'prediction_session_date string, next_trading_date string, next_available_volume long, current_volume long')
+            historical.write.parquet(production)
+            historical.withColumn('next_available_volume', F.lit(55555555)).write.parquet(staging)
+            pred = self.spark.createDataFrame([
+                ('2026-09-16', 95000000., 'v1', datetime(2026, 9, 16, 10), 2, .1, .2),
+                ('2026-09-18', 95000000., 'v1', datetime(2026, 9, 18, 10), 2, .1, .2),
+            ], 'prediction_session_date string, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double').withColumn('prediction_session_date', F.to_date('prediction_session_date'))
+            env = dict(spark=self.spark, F=F, display=lambda *_: None,
+                       GOLD_PATH=production, AGG_ROOT=tmp + '/', pred=pred,
+                       # A stale value from an earlier interactive cell must not win.
+                       HISTORICAL_GOLD_PATH=staging)
+            exec(cell('GoldAggregate', 6), env)
+            rows = self.spark.read.parquet(tmp + '/prediction_history').orderBy('prediction_date').collect()
+            row = rows[0]
+            self.assertEqual(row.prediction_date, date(2026, 9, 16))
+            self.assertEqual(row.target_date, date(2026, 9, 17))
+            self.assertEqual(row.actual_volume, 94191300)
+            self.assertNotEqual(row.evaluation_status, 'Pending')
+            self.assertAlmostEqual(row.prediction_accuracy, 1 - abs(94191300 - 95000000) / 94191300)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[1].evaluation_status, 'Pending')
+            self.assertEqual(env['HISTORICAL_GOLD_PATH'], production)
+
+            # An explicit archived target still evaluates without a session mapping.
+            env['pred'] = pred.withColumn('target_date', F.lit('2026-09-17'))
+            exec(cell('GoldAggregate', 6), env)
+            rows = self.spark.read.parquet(tmp + '/prediction_history').collect()
+            self.assertTrue(all(r.actual_volume == 94191300 and r.evaluation_status == 'Evaluated' for r in rows))
+
+    def test_staging_only_label_does_not_masquerade_as_published_actual(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            production = tmp + '/historical'
+            data = self.spark.createDataFrame([
+                (date(2026, 9, 16), date(2026, 9, 17), None),
+            ], 'prediction_session_date date, next_trading_date date, next_available_volume long')
+            data.write.parquet(production)
+            data.withColumn('next_available_volume', F.lit(94191300)).write.parquet(tmp + '/historical_staging')
+            pred = self.spark.createDataFrame([
+                (date(2026, 9, 16), 95000000., 'v1', datetime(2026, 9, 16, 10), 2, .1, .2),
+            ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
+            env = dict(spark=self.spark, F=F, display=lambda *_: None,
+                       GOLD_PATH=production, AGG_ROOT=tmp + '/', pred=pred)
+            exec(cell('GoldAggregate', 6), env)
+            row = self.spark.read.parquet(tmp + '/prediction_history').first()
+            self.assertIsNone(row.actual_volume)
+            self.assertEqual(row.evaluation_status, 'Pending')
+
     def test_market_download_range_and_invalid_bars(self):
         historical = self.spark.createDataFrame([
             (date(2026, 7, 1), None)
@@ -89,14 +148,9 @@ class PredictionBackfillTest(unittest.TestCase):
                 (date(2026, 9, 16), 95000000., 'latest', datetime(2026, 9, 16, 10), 2, .1, .2),
                 (date(2026, 9, 17), 96000000., 'latest', datetime(2026, 9, 17, 10), 1, .1, .2),
             ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
-            gold_code = cell('GoldAggregate', 6).replace(
-                'abfss://gold@<storage-account-name>.dfs.core.windows.net/tweets_stock/historical/', production
-            )
-            # Paths in the notebook are adjacent string literals.
-            gold_code = gold_code.replace('"abfss://gold@<storage-account-name>.dfs.core.windows.net/"\n    "tweets_stock/historical/"', repr(production))
-            gold_code = gold_code.replace('"abfss://gold@<storage-account-name>.dfs.core.windows.net/"\n    "aggregates/prediction_history/"', repr(aggregate))
-            env['pred'] = pred
-            exec(gold_code, env)
+            env.update(pred=pred, GOLD_PATH=production, AGG_ROOT=tmp + '/')
+            exec(cell('GoldAggregate', 6), env)
+            aggregate = str(Path(tmp) / 'prediction_history')
             history = self.spark.read.parquet(aggregate).orderBy('prediction_date').collect()
             self.assertEqual(len(history), 2)
             row = history[0]
