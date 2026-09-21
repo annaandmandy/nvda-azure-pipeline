@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "syn-nvda-sentiment"
+		},
+		"syn-nvda-sentiment-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:syn-nvda-sentiment.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"syn-nvda-sentiment-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://stnvdaanna2026.dfs.core.windows.net"
+		}
+	}
+}
