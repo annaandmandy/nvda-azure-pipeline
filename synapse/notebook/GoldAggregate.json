@@ -18,12 +18,16 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f28f3c02-df30-423a-a4b5-946f7b5f7b89"
+				"spark.autotune.trackingId": "e3c77e15-e252-43b7-9687-3c9297f7885f"
 			}
 		},
 		"metadata": {
 			"saveOutput": true,
 			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
 			"language_info": {
 				"name": "python"
 			},
@@ -34,14 +38,13 @@
 				"endpoint": "https://syn-nvda-sentiment.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkNVDA",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net",
-					"authHeader": null
+					"authResource": "https://dev.azuresynapse.net"
 				},
 				"sparkVersion": "3.5",
 				"nodeCount": 10,
 				"cores": 4,
 				"memory": 28,
-				"extraHeader": null
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -70,7 +73,7 @@
 					"# Paths\n",
 					"# ============================================================\n",
 					"\n",
-					"STORAGE_ACCOUNT = \"<storage-account-name>\"\n",
+					"STORAGE_ACCOUNT = \"stnvdaanna2026\"\n",
 					"\n",
 					"GOLD_PATH = (\n",
 					"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
@@ -740,7 +743,8 @@
 					"display(prediction_history.orderBy(F.col(\"prediction_date\").desc()))\n",
 					"\n",
 					"prediction_history.coalesce(1).write.mode(\"overwrite\").parquet(PREDICTION_AGG_PATH)\n",
-					"print(\"Prediction history written successfully.\")\n"
+					"print(\"Prediction history written successfully.\")\n",
+					""
 				],
 				"execution_count": 2
 			},
@@ -748,7 +752,8 @@
 				"cell_type": "code",
 				"source": [
 					""
-				]
+				],
+				"execution_count": null
 			}
 		]
 	}
