@@ -86,6 +86,7 @@ def run_backfill(body, *, fetch_page, build_row, write_page, query, now=None):
     now = now or datetime.now(timezone.utc)
     day, end, cursor, limit = validate_request(body, now.astimezone(ET).date())
     pages, written, days = 0, [], []
+    diagnostics = []
     seen_cursors = {cursor} if cursor else set()
     while day <= end and pages < limit:
         # Date-only search bounds may be interpreted as UTC. Include the next UTC
@@ -96,6 +97,8 @@ def run_backfill(body, *, fetch_page, build_row, write_page, query, now=None):
         if next_cursor and next_cursor in seen_cursors:
             raise ProviderPayloadError('Repeated cursor; resume safely after checking provider pagination')
         rows = {}
+        timestamps = []
+        before = after = duplicates = 0
         for tweet in tweets:
             row = build_row(tweet)
             if not row or not row.get('tweet_id') or not row.get('user_id'):
@@ -103,10 +106,17 @@ def run_backfill(body, *, fetch_page, build_row, write_page, query, now=None):
             stamp = datetime.fromisoformat(row['tweet_timestamp_utc'])
             if stamp.tzinfo is None:
                 raise ProviderPayloadError('Tweet timestamp has no timezone')
-            if stamp.astimezone(ET).date() != day:
+            stamp_et = stamp.astimezone(ET)
+            timestamps.append(stamp_et)
+            if stamp_et.date() < day:
+                before += 1
+                continue
+            if stamp_et.date() > day:
+                after += 1
                 continue
             row = dict(row)
             row.pop('candidate_prediction_session_date', None)
+            duplicates += int(row['tweet_id'] in rows)
             rows[row['tweet_id']] = row
         if rows:
             page_id = hashlib.sha256(json.dumps([search, cursor], ensure_ascii=False).encode()).hexdigest()
@@ -122,6 +132,22 @@ def run_backfill(body, *, fetch_page, build_row, write_page, query, now=None):
             }
             write_page(path, envelope)
             written.append({'blob': path, 'tweet_count': len(rows)})
+        diagnostics.append({
+            'page_number': pages,
+            'target_date_et': day.isoformat(),
+            'search_since': day.isoformat(),
+            'search_until_exclusive': (day + timedelta(days=2)).isoformat(),
+            'parsed_tweets': len(tweets),
+            'earliest_tweet_et': min(timestamps).isoformat() if timestamps else None,
+            'latest_tweet_et': max(timestamps).isoformat() if timestamps else None,
+            'excluded_before_target_date': before,
+            'excluded_after_target_date': after,
+            'duplicate_matching_ids': duplicates,
+            'written_tweets': len(rows),
+            'has_next_cursor': bool(next_cursor),
+            'outcome': ('written' if rows else
+                        'no_parsed_tweets' if not tweets else 'all_outside_target_date'),
+        })
         # A cursor-bearing empty page can be a provider gap. Continue to its
         # cursor rather than declaring exhaustion from tweet count alone.
         if next_cursor:
@@ -141,6 +167,7 @@ def run_backfill(body, *, fetch_page, build_row, write_page, query, now=None):
         'status': 'partial' if continuation else 'finished',
         'pages_fetched': pages,
         'written_pages': written,
+        'page_diagnostics': diagnostics,
         'provider_exhausted_dates': days,
         'coverage': 'provider_search_results_only; not guaranteed complete X coverage',
         'next_request': continuation,

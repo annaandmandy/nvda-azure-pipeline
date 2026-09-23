@@ -91,3 +91,23 @@ integration test reads real recovery JSON files using GoldAggregate's recursive
 reader, verifies September 18 rows after a retry and preserves the known
 September 16 → 17 actual label 94,191,300. Existing prediction/daily BI tests remain.
 No live Azure deployment or paid API requests are performed by these tests.
+
+## Diagnose batches with no written pages
+
+The HTTP response and existing Historical BI recovery log now include
+`page_diagnostics`. Each page reports the target Eastern date, search bounds,
+parsed tweet count, earliest/latest Eastern timestamps, exclusions before/after
+the target day, duplicate matching IDs, written count and whether a cursor exists.
+No tweet text, user identifiers or cursor values are included in this diagnostic
+object. The existing `next_request` still contains the continuation cursor.
+
+- `all_outside_target_date`: tweets were parsed but all were outside the Eastern
+  target day. Latest search can return the newer padded day's tweets first.
+- `no_parsed_tweets`: the parser extracted no tweets. This alone cannot establish
+  that the provider has no tweets; an unrecognized response layout is also possible.
+- `written`: the page was saved with the reported number of unique matching IDs.
+
+After deploying diagnostics, resume with the most recent `next_request`, changing
+`max_pages` to 1 for a single-call diagnostic run. Preserve its date range and
+cursor. Inspect `page_diagnostics` before spending quota on more pages. Do not
+interpret `partial` or an Azure execution status of Succeeded as recovered data.
