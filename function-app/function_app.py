@@ -771,7 +771,8 @@ def backfill_nvda_tweets(req: func.HttpRequest) -> func.HttpResponse:
                                  status_code=400, mimetype="application/json")
 
     def fetch_page(query, cursor):
-        params = {"type": "Latest", "count": TWITTER_COUNT, "query": query}
+        # Historical recovery uses provider-ranked results; retain exact ET filtering.
+        params = {"type": "Top", "count": TWITTER_COUNT, "query": query}
         if cursor:
             params["cursor"] = cursor
         response = requests.get(
