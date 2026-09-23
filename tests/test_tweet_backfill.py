@@ -101,6 +101,46 @@ class TweetBackfillTest(unittest.TestCase):
         self.run_recovery([page([tweet()], 'A'), page([tweet('second')])], saved=saved)
         self.assertEqual(len(saved), 2)
 
+    def test_diagnostics_september17_excludes_newer_results(self):
+        result, saved, _ = self.run_recovery([page([tweet()], 'NEXT')],
+            {'start_date': '2026-09-17', 'end_date': '2026-09-22', 'max_pages': 1})
+        self.assertEqual(saved, {})
+        d = result['page_diagnostics'][0]
+        self.assertEqual(d['target_date_et'], '2026-09-17')
+        self.assertEqual(d['parsed_tweets'], 1)
+        self.assertEqual(d['excluded_after_target_date'], 1)
+        self.assertEqual(d['earliest_tweet_et'], '2026-09-18T11:00:00-04:00')
+        self.assertEqual(d['outcome'], 'all_outside_target_date')
+        self.assertTrue(d['has_next_cursor'])
+        self.assertEqual(result['next_request']['cursor'], 'NEXT')
+
+    def test_diagnostics_empty_provider_page_is_distinct(self):
+        result, saved, _ = self.run_recovery([page(cursor='NEXT')],
+            {'start_date': '2026-09-17', 'end_date': '2026-09-22', 'max_pages': 1})
+        d = result['page_diagnostics'][0]
+        self.assertEqual(d['outcome'], 'no_parsed_tweets')
+        self.assertEqual(d['parsed_tweets'], 0)
+        self.assertIsNone(d['earliest_tweet_et'])
+        self.assertIsNone(d['latest_tweet_et'])
+        self.assertEqual(saved, {})
+        self.assertNotIn('NEXT', json.dumps(d))
+
+    def test_diagnostics_counts_et_boundaries_and_duplicates(self):
+        result, saved, _ = self.run_recovery([page([
+            tweet(), tweet(),
+            tweet('early', 'Fri Sep 18 03:59:00 +0000 2026'),
+            tweet('late', 'Sat Sep 19 03:59:00 +0000 2026'),
+            tweet('next', 'Sat Sep 19 04:00:00 +0000 2026')])])
+        d = result['page_diagnostics'][0]
+        self.assertEqual(d['parsed_tweets'], 5)
+        self.assertEqual(d['excluded_before_target_date'], 1)
+        self.assertEqual(d['excluded_after_target_date'], 1)
+        self.assertEqual(d['duplicate_matching_ids'], 1)
+        self.assertEqual(d['written_tweets'], 2)
+        self.assertEqual(d['outcome'], 'written')
+        self.assertFalse(d['has_next_cursor'])
+        self.assertEqual(next(iter(saved.values()))['tweet_count'], 2)
+
     def test_validation_rejects_future_reversed_long_or_unbounded_requests(self):
         for body in [None, {}, {'start_date': 'bad', 'end_date': '2026-09-18'},
                      {'start_date': '2026-09-18', 'end_date': '2026-09-23'},
