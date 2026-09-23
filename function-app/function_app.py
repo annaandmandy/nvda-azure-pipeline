@@ -752,3 +752,53 @@ def manual_nvda_ingestion(
             status_code=500,
             mimetype="application/json"
         )
+
+# Historical recovery is BI-only: never overwrite a live prediction-session file.
+from tweet_backfill import run_backfill, validate_request
+
+
+@app.route(
+    route="backfill-nvda-tweets",
+    methods=["POST"],
+    auth_level=func.AuthLevel.FUNCTION
+)
+def backfill_nvda_tweets(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        body = req.get_json()
+        validate_request(body)
+    except ValueError as exc:
+        return func.HttpResponse(json.dumps({"error": str(exc)}),
+                                 status_code=400, mimetype="application/json")
+
+    def fetch_page(query, cursor):
+        params = {"type": "Latest", "count": TWITTER_COUNT, "query": query}
+        if cursor:
+            params["cursor"] = cursor
+        response = requests.get(
+            f"https://{RAPIDAPI_HOST}/search-v2",
+            headers={"x-rapidapi-host": RAPIDAPI_HOST, "x-rapidapi-key": RAPIDAPI_KEY},
+            params=params, timeout=30)
+        response.raise_for_status()
+        return response.json()
+
+    try:
+        service = get_blob_service_client()
+
+        def write_page(path, envelope):
+            service.get_blob_client(container=GOLD_CONTAINER, blob=path).upload_blob(
+                json.dumps(envelope, ensure_ascii=False), overwrite=True)
+
+        result = run_backfill(body, fetch_page=fetch_page,
+                              build_row=build_feature_row, write_page=write_page,
+                              query=TWITTER_QUERY)
+        logging.info("Historical BI recovery: %s", json.dumps(result))
+        return func.HttpResponse(json.dumps(result),
+                                 status_code=202 if result['next_request'] else 200,
+                                 mimetype="application/json")
+    except Exception:
+        logging.exception("Historical tweet recovery failed; request can be retried")
+        return func.HttpResponse(json.dumps({
+            "status": "error",
+            "error": "Recovery failed. Check Function logs. Earlier pages may be saved; retry the same body.",
+            "retry_request": body,
+        }), status_code=502, mimetype="application/json")
