@@ -61,7 +61,7 @@ Never paste the key into GitHub, screenshots, or chat.
 ## Data meaning and safety
 
 - Date bounds are inclusive Eastern calendar days, at most seven completed days
-  per range. Search uses Latest and a padded UTC date window, then filters by the
+  per range. Search uses Top and a padded UTC date window, then filters by the
   actual UTC timestamp converted to America/New_York. Late evening tweets remain
   on the correct Eastern day. Today's unfinished date is rejected.
 - Existing feature engineering is reused. Engagement and user profiles are
@@ -102,7 +102,7 @@ No tweet text, user identifiers or cursor values are included in this diagnostic
 object. The existing `next_request` still contains the continuation cursor.
 
 - `all_outside_target_date`: tweets were parsed but all were outside the Eastern
-  target day. Latest search can return the newer padded day's tweets first.
+  target day. Top search can include tweets from the padded neighboring dates.
 - `no_parsed_tweets`: the parser extracted no tweets. This alone cannot establish
   that the provider has no tweets; an unrecognized response layout is also possible.
 - `written`: the page was saved with the reported number of unique matching IDs.
@@ -111,3 +111,22 @@ After deploying diagnostics, resume with the most recent `next_request`, changin
 `max_pages` to 1 for a single-call diagnostic run. Preserve its date range and
 cursor. Inspect `page_diagnostics` before spending quota on more pages. Do not
 interpret `partial` or an Azure execution status of Succeeded as recovered data.
+
+## Switching recovery from Latest to Top
+
+Historical recovery now requests `type=Top`, following a manual provider test
+that returned a historical tweet. That sample does not establish availability
+for every requested Eastern date or complete coverage. Top is a ranked sample;
+keep exact Eastern-date filtering and inspect the existing page diagnostics.
+
+After deploying this change, discard previous Latest continuation cursors and
+start a fresh request (one API page first):
+
+```json
+{"start_date":"2026-09-17","end_date":"2026-09-22","max_pages":1}
+```
+
+Continue only with `next_request` from the new Top run. Do not mix cursors between
+search modes. Existing deterministic page paths are unchanged; a replay can
+replace the same first-page blob. This recovery remains provider search results,
+not a complete archive or a historical live prediction input.
