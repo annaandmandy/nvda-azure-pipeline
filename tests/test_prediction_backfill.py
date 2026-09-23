@@ -31,64 +31,55 @@ class PredictionBackfillTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.spark.stop()
 
-    def test_target_label_lookup_uses_configured_production(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            production = str(Path(tmp) / 'configured-account' / 'historical')
-            staging = str(Path(tmp) / 'historical_staging')
-            historical = self.spark.createDataFrame([
-                # The prediction's own historical session has not been labeled.
-                ('2026-09-16', '2026-09-17', None, 111111),
-                # A label can exist on another session (or without a session).
-                ('2026-09-15', '2026-09-17', 94191300, 222222),
-                (None, '2026-09-17', 94191300, 222222),
-                # Guard against joining target_date to prediction_session_date.
-                ('2026-09-17', '2026-09-18', 77777777, 333333),
-            ], 'prediction_session_date string, next_trading_date string, next_available_volume long, current_volume long')
-            historical.write.parquet(production)
-            historical.withColumn('next_available_volume', F.lit(55555555)).write.parquet(staging)
-            pred = self.spark.createDataFrame([
-                ('2026-09-16', 95000000., 'v1', datetime(2026, 9, 16, 10), 2, .1, .2),
-                ('2026-09-18', 95000000., 'v1', datetime(2026, 9, 18, 10), 2, .1, .2),
-            ], 'prediction_session_date string, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double').withColumn('prediction_session_date', F.to_date('prediction_session_date'))
-            env = dict(spark=self.spark, F=F, display=lambda *_: None,
-                       GOLD_PATH=production, AGG_ROOT=tmp + '/', pred=pred,
-                       # A stale value from an earlier interactive cell must not win.
-                       HISTORICAL_GOLD_PATH=staging)
-            exec(cell('GoldAggregate', 6), env)
-            rows = self.spark.read.parquet(tmp + '/prediction_history').orderBy('prediction_date').collect()
-            row = rows[0]
-            self.assertEqual(row.prediction_date, date(2026, 9, 16))
-            self.assertEqual(row.target_date, date(2026, 9, 17))
-            self.assertEqual(row.actual_volume, 94191300)
-            self.assertNotEqual(row.evaluation_status, 'Pending')
-            self.assertAlmostEqual(row.prediction_accuracy, 1 - abs(94191300 - 95000000) / 94191300)
-            self.assertEqual(len(rows), 2)
-            self.assertEqual(rows[1].evaluation_status, 'Pending')
-            self.assertEqual(env['HISTORICAL_GOLD_PATH'], production)
+    def evaluation_env(self, pred, bars, end=date(2026, 9, 23)):
+        env = dict(spark=self.spark, F=F, display=lambda *_: None)
+        exec(cell('GoldAggregate', 0).split('# Read Historical Gold and archived daily tweets for BI')[0], env)
+        market = self.spark.createDataFrame(bars, 'tweet_created_at_date date, current_volume double')
+        return env['evaluate_predictions'](pred, market, end), env
 
-            # An explicit archived target still evaluates without a session mapping.
-            env['pred'] = pred.withColumn('target_date', F.lit('2026-09-17'))
-            exec(cell('GoldAggregate', 6), env)
-            rows = self.spark.read.parquet(tmp + '/prediction_history').collect()
-            self.assertTrue(all(r.actual_volume == 94191300 and r.evaluation_status == 'Evaluated' for r in rows))
+    def forecasts(self, days):
+        return self.spark.createDataFrame([
+            (d, 128255294.133, 'v1', datetime(2026, 9, 23, 15), 20, .1, .2) for d in days
+        ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
 
-    def test_staging_only_label_does_not_masquerade_as_published_actual(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            production = tmp + '/historical'
-            data = self.spark.createDataFrame([
-                (date(2026, 9, 16), date(2026, 9, 17), None),
-            ], 'prediction_session_date date, next_trading_date date, next_available_volume long')
-            data.write.parquet(production)
-            data.withColumn('next_available_volume', F.lit(94191300)).write.parquet(tmp + '/historical_staging')
-            pred = self.spark.createDataFrame([
-                (date(2026, 9, 16), 95000000., 'v1', datetime(2026, 9, 16, 10), 2, .1, .2),
-            ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
-            env = dict(spark=self.spark, F=F, display=lambda *_: None,
-                       GOLD_PATH=production, AGG_ROOT=tmp + '/', pred=pred)
-            exec(cell('GoldAggregate', 6), env)
-            row = self.spark.read.parquet(tmp + '/prediction_history').first()
-            self.assertIsNone(row.actual_volume)
-            self.assertEqual(row.evaluation_status, 'Pending')
+    def test_missing_historical_tweets_do_not_block_target_or_actual(self):
+        pred = self.forecasts([date(2026, 9, 16), date(2026, 9, 17), date(2026, 9, 18)])
+        history, _ = self.evaluation_env(pred, [(date(2026, 9, 17), 94191300.),
+                                              (date(2026, 9, 18), 190290000.),
+                                              (date(2026, 9, 21), 109810000.)])
+        rows = {r.prediction_date: r for r in history.collect()}
+        for session, target, volume in [(16, 17, 94191300.), (17, 18, 190290000.), (18, 21, 109810000.)]:
+            row = rows[date(2026, 9, session)]
+            self.assertEqual((row.target_date, row.actual_volume, row.evaluation_status),
+                             (date(2026, 9, target), volume, 'Evaluated'))
+        # There is no historical dataframe at all: this path must remain independent.
+        self.assertAlmostEqual(rows[date(2026, 9, 17)].prediction_accuracy,
+                               1 - abs(190290000 - 128255294.133) / 190290000)
+
+    def test_missing_bar_does_not_shift_target_to_next_available_bar(self):
+        history, _ = self.evaluation_env(self.forecasts([date(2026, 9, 17)]),
+                                          [(date(2026, 9, 21), 109810000.)])
+        row = history.first()
+        self.assertEqual(row.target_date, date(2026, 9, 18))
+        self.assertIsNone(row.actual_volume)
+        self.assertEqual(row.evaluation_status, 'Pending')
+
+    def test_archived_target_checked_and_holiday_resolved(self):
+        pred = self.forecasts([date(2026, 9, 4)]).withColumn('target_date', F.lit('2026-09-08'))
+        history, _ = self.evaluation_env(pred, [(date(2026, 9, 8), 123456.)])
+        self.assertEqual(history.first().target_date, date(2026, 9, 8))
+        with self.assertRaisesRegex(ValueError, 'conflicts'):
+            self.evaluation_env(pred.withColumn('target_date', F.lit('2026-09-07')), [])
+
+    def test_unfinished_and_invalid_volumes_stay_pending(self):
+        for volume in [94191300., 0., -1., float('nan'), float('inf')]:
+            history, _ = self.evaluation_env(self.forecasts([date(2026, 9, 16)]),
+                    [(date(2026, 9, 17), volume)], end=date(2026, 9, 17))
+            self.assertEqual(history.first().evaluation_status, 'Pending')
+        for volume in [0., -1., float('nan'), float('inf')]:
+            history, _ = self.evaluation_env(self.forecasts([date(2026, 9, 16)]),
+                    [(date(2026, 9, 17), volume)])
+            self.assertIsNone(history.first().actual_volume)
 
     def test_market_download_range_and_invalid_bars(self):
         historical = self.spark.createDataFrame([
@@ -149,6 +140,8 @@ class PredictionBackfillTest(unittest.TestCase):
                 (date(2026, 9, 17), 96000000., 'latest', datetime(2026, 9, 17, 10), 1, .1, .2),
             ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
             env.update(pred=pred, GOLD_PATH=production, AGG_ROOT=tmp + '/')
+            history_df, _ = self.evaluation_env(pred, [(date(2026, 9, 17), 94191300.), (date(2026, 9, 18), 190290000.)])
+            env.update(prediction_history=history_df, PREDICTION_AGG_PATH=tmp + '/prediction_history')
             exec(cell('GoldAggregate', 6), env)
             aggregate = str(Path(tmp) / 'prediction_history')
             history = self.spark.read.parquet(aggregate).orderBy('prediction_date').collect()
@@ -157,8 +150,9 @@ class PredictionBackfillTest(unittest.TestCase):
             self.assertEqual((row.target_date, row.actual_volume, row.evaluation_status, row.model_version),
                              (date(2026, 9, 17), 94191300., 'Evaluated', 'latest'))
             self.assertAlmostEqual(row.prediction_accuracy, 1 - abs(94191300 - 95000000) / 94191300)
-            self.assertEqual(history[1].evaluation_status, 'Pending')
-            self.assertIsNone(history[1].prediction_accuracy)
+            self.assertEqual(history[1].evaluation_status, 'Evaluated')
+            self.assertEqual(history[1].target_date, date(2026, 9, 18))
+            self.assertEqual(history[1].actual_volume, 190290000.)
 
             # Execute the repository's FactPrediction INSERT unchanged against a
             # local SQL harness. This verifies projection, not Synapse connectivity.
@@ -178,6 +172,8 @@ class PredictionBackfillTest(unittest.TestCase):
             conn.execute(insert)
             actual = conn.execute('SELECT TargetDateKey,ActualVolume,EvaluationStatus FROM dbo.FactPrediction WHERE PredictionDateKey=20260916').fetchone()
             self.assertEqual(actual, (20260917, 94191300., 'Evaluated'))
+            actual17 = conn.execute('SELECT TargetDateKey,ActualVolume,EvaluationStatus FROM dbo.FactPrediction WHERE PredictionDateKey=20260917').fetchone()
+            self.assertEqual(actual17, (20260918, 190290000., 'Evaluated'))
             conn.close()
 
 
