@@ -143,6 +143,32 @@ class DailyGoldTest(unittest.TestCase):
             self.assertNotIn(date(2026, 9, 23), market)
             self.assertEqual(self.spark.read.parquet(tmp + '/out/viral_tweet_log').filter("tweet_created_at_date = '2026-09-16'").count(), 1)
 
+    def test_historical_recovery_pages_are_read_by_gold(self):
+        from test_tweet_backfill import m, page, tweet, env as features, NOW
+        with tempfile.TemporaryDirectory() as tmp:
+            def persist(path, envelope):
+                target = Path(tmp) / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(envelope))
+            args = dict(fetch_page=lambda *_: page([tweet(), tweet(),
+                        tweet('late18', 'Sat Sep 19 03:00:00 +0000 2026')]),
+                        build_row=features['build_feature_row'], write_page=persist,
+                        query='$NVDA lang:en', now=NOW)
+            body = {'start_date': '2026-09-18', 'end_date': '2026-09-18'}
+            m.run_backfill(body, **args)
+            m.run_backfill(body, **args)
+            envelopes = (self.spark.read.option('multiline', 'true')
+                         .option('recursiveFileLookup', 'true')
+                         .option('pathGlobFilter', 'tweets_gold.json').json(tmp + '/stream')
+                         .withColumn('_source_file', F.input_file_name()))
+            merged = self.env['merge_daily_tweets'](self.historical_fixture(), envelopes)
+            rows = merged.filter("to_date(tweet_timestamp_et) = '2026-09-18'").collect()
+            self.assertEqual({r.tweet_id for r in rows}, {'one', 'late18'})
+            self.assertEqual(len(rows), 2)
+            self.assertTrue(all(r.prediction_session_date is None for r in rows))
+            self.assertTrue(all(r.sentiment_score == .25 for r in rows))
+            self.assertEqual(merged.filter("tweet_id = 'old'").first().next_available_volume, 94191300)
+
     def test_market_rejects_unfinished_and_invalid_bars(self):
         pdf = self.market_fixture()
         pdf.columns = pd.MultiIndex.from_tuples([(c, 'NVDA') for c in pdf.columns])
