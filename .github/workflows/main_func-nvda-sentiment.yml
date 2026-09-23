@@ -32,9 +32,37 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies into deployment package
+      # Linux Consumption runs an older glibc than ubuntu-latest.
+      # Refuse native wheels requiring a newer ABI or local source builds.
+      - name: Install Linux-compatible deployment dependencies
         working-directory: ./function-app
-        run: python -m pip install --target=".python_packages/lib/site-packages" -r requirements.txt
+        run: |
+          python -m pip install --target=".python_packages/lib/site-packages" --platform manylinux2014_x86_64 --implementation cp --python-version 3.11 --only-binary=:all: -r requirements.txt
+
+      - name: Check function registration before deployment
+        working-directory: ./function-app
+        env:
+          PYTHONPATH: .python_packages/lib/site-packages
+          RAPIDAPI_HOST: test.invalid
+          RAPIDAPI_KEY: ci-placeholder
+          STORAGE_ACCOUNT_NAME: citeststorage
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import re
+          import subprocess
+          # Check actual ELF requirements, not just wheel tags.
+          for library in Path(".python_packages/lib/site-packages").rglob("*.so"):
+              output = subprocess.check_output(["readelf", "--version-info", str(library)], text=True)
+              versions = [tuple(map(int, v.split("."))) for v in re.findall(r"GLIBC_(\d+\.\d+(?:\.\d+)?)", output)]
+              assert all(v <= (2, 17) for v in versions), (str(library), versions)
+          import function_app
+          import tweet_backfill
+          names = {f.get_function_name() for f in function_app.app.get_functions()}
+          expected = {"daily_nvda_ingestion", "manual_nvda_ingestion", "backfill_nvda_tweets"}
+          assert names == expected, names
+          print("Registered functions:", sorted(names))
+          PYTHON
 
       - name: Zip artifact for deployment
         run: zip -r release.zip function-app
