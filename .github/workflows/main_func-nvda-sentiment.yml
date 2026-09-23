@@ -8,11 +8,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'function-app/**'
+      - '.github/workflows/main_func-nvda-sentiment.yml'
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.11' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './function-app'
+  PYTHON_VERSION: '3.11'
 
 jobs:
   build:
@@ -29,26 +32,18 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      # Optional: Add step to run tests here
+      - name: Install dependencies into deployment package
+        working-directory: ./function-app
+        run: python -m pip install --target=".python_packages/lib/site-packages" -r requirements.txt
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip -r release.zip function-app
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -82,4 +77,3 @@ jobs:
           app-name: 'func-nvda-sentiment'
           slot-name: 'Production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          
