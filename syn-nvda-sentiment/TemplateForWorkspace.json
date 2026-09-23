@@ -559,7 +559,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "CREATE PROCEDURE dbo.sp_DailyRefresh\nAS\nBEGIN\n\n    /* =========================================================\n       1. CLEAR WAREHOUSE\n       ========================================================= */\n\n    TRUNCATE TABLE dbo.FactViralTweetLog;\n    TRUNCATE TABLE dbo.FactDailyTweet;\n    TRUNCATE TABLE dbo.FactMarketSummaryPerDay;\n    TRUNCATE TABLE dbo.FactUserTypeDistribution;\n    TRUNCATE TABLE dbo.FactTopUsersByTweetCount;\n    TRUNCATE TABLE dbo.FactTopUsersByViralTweets;\n    TRUNCATE TABLE dbo.FactInfluencerMonthlyEngagement;\n    TRUNCATE TABLE dbo.FactPrediction;\n\n    TRUNCATE TABLE dbo.DimUser;\n    TRUNCATE TABLE dbo.DimDate;\n\n\n    /* =========================================================\n       2. DIM DATE\n       Conformed date dimension\n       ========================================================= */\n\n    INSERT INTO dbo.DimDate\n    (\n        DateKey,\n        FullDate,\n        CalendarYear,\n        CalendarMonth,\n        MonthName,\n        DayOfMonth,\n        DayOfWeekNumber,\n        DayName,\n        YearMonth\n    )\n    SELECT DISTINCT\n        YEAR(d) * 10000 + MONTH(d) * 100 + DAY(d) AS DateKey,\n        d AS FullDate,\n        YEAR(d) AS CalendarYear,\n        MONTH(d) AS CalendarMonth,\n        DATENAME(MONTH, d) AS MonthName,\n        DAY(d) AS DayOfMonth,\n        DATEPART(WEEKDAY, d) AS DayOfWeekNumber,\n        DATENAME(WEEKDAY, d) AS DayName,\n        CONCAT(\n            YEAR(d),\n            '-',\n            RIGHT('0' + CAST(MONTH(d) AS VARCHAR(2)), 2)\n        ) AS YearMonth\n    FROM\n    (\n        SELECT tweet_created_at_date AS d\n        FROM dbo.ext_DailyTweetSummary\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_MarketSummaryPerDay\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_ViralTweetLog\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_UserTypeDistributionPerDay\n\n        UNION\n\n        SELECT year_month\n        FROM dbo.ext_InfluencerMonthlyEngagement\n    ) dates\n    WHERE d IS NOT NULL;\n\n\n    /* =========================================================\n       3. DIM USER\n       Natural key: UserID\n       Surrogate key: UserKey\n       ========================================================= */\n\n    INSERT INTO dbo.DimUser\n    (\n        UserKey,\n        UserID,\n        IsBlueVerified,\n        AccountCreatedAt,\n        AccountAgeDays,\n        IsNewAccount,\n        IsInfluencer,\n        FollowersCount,\n        FriendsCount,\n        MediaCount,\n        CredibilityScore\n    )\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY user_id) AS UserKey,\n        user_id,\n        is_blue_verified,\n        account_created_at,\n        account_age_days,\n        is_new_account,\n        is_influencer,\n        followers_count,\n        friends_count,\n        media_count,\n        credibility_score\n    FROM dbo.ext_UserProfile;\n\n\n    /* =========================================================\n       4. FACT DAILY TWEET\n       Grain: 1 row / date\n       ========================================================= */\n\n    INSERT INTO dbo.FactDailyTweet\n    (\n        DateKey,\n        TotalTweets,\n        AvgSentiment,\n        AvgInteractionScore,\n        AvgFavoriteRatio,\n        AvgReplyRatio,\n        TotalViralTweet,\n        AvgCredibilityScore,\n        AvgFollowers\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        total_tweets,\n        avg_sentiment,\n        avg_interaction_score,\n        avg_favorite_ratio,\n        avg_reply_ratio,\n        total_viral_tweet,\n        avg_credibility_score,\n        avg_followers\n\n    FROM dbo.ext_DailyTweetSummary\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       5. FACT MARKET SUMMARY\n       Grain: 1 row / market date\n       ========================================================= */\n\n    INSERT INTO dbo.FactMarketSummaryPerDay\n    (\n        DateKey,\n        CurrentOpen,\n        CurrentClose,\n        CurrentHigh,\n        CurrentLow,\n        CurrentVolume,\n        ActualNextVolume,\n        AvgSentiment,\n        TweetCount,\n        PredictedNextVolume,\n        PredictionAccuracy\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        current_open,\n        current_close,\n        current_high,\n        current_low,\n        current_volume,\n        actual_volume,\n        avg_sentiment,\n        tweet_count,\n        predicted_volume,\n        prediction_accuracy\n\n    FROM dbo.ext_MarketSummaryPerDay\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       6. FACT VIRAL TWEET LOG\n       Resolve UserID -> UserKey\n       ========================================================= */\n\n    INSERT INTO dbo.FactViralTweetLog\n    (\n        TweetID,\n        DateKey,\n        UserKey,\n        FullText,\n        SentimentScore,\n        InteractionScore,\n        FollowersCount,\n        FavoriteCount,\n        RetweetCount,\n        ReplyCount,\n        ViewCount,\n        CredibilityScore\n    )\n    SELECT\n        v.tweet_id,\n\n        YEAR(v.tweet_created_at_date) * 10000\n            + MONTH(v.tweet_created_at_date) * 100\n            + DAY(v.tweet_created_at_date),\n\n        u.UserKey,\n        v.full_text,\n        v.sentiment_score,\n        v.interaction_score,\n        v.followers_count,\n        v.favorite_count,\n        v.retweet_count,\n        v.reply_count,\n        v.view_count,\n        v.credibility_score\n\n    FROM dbo.ext_ViralTweetLog v\n\n    INNER JOIN dbo.DimUser u\n        ON v.user_id = u.UserID\n\n    WHERE v.tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       7. FACT USER TYPE DISTRIBUTION\n       Grain: 1 row / date\n       ========================================================= */\n\n    INSERT INTO dbo.FactUserTypeDistribution\n    (\n        DateKey,\n        InfluencerTweetCount,\n        NewAccountTweetCount,\n        BlueVerifiedTweetCount,\n        TotalTweets,\n        DistinctUsers,\n        AvgAccountAge,\n        GeneralPublicTweetCount,\n        EstablishedAccountTweetCount,\n        UnverifiedTweetCount\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        influencer_tweet_count,\n        new_account_tweet_count,\n        blue_verified_tweet_count,\n        total_tweets,\n        distinct_users,\n        avg_account_age,\n        general_public_tweet_count,\n        established_account_tweet_count,\n        unverified_tweet_count\n\n    FROM dbo.ext_UserTypeDistributionPerDay\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       8. TOP USERS BY TWEET COUNT\n       ========================================================= */\n\n    INSERT INTO dbo.FactTopUsersByTweetCount\n    (\n        UserKey,\n        TweetCount,\n        FollowersCount,\n        CredibilityScore,\n        IsInfluencer\n    )\n    SELECT\n        u.UserKey,\n        e.tweet_count,\n        e.followers_count,\n        e.credibility_score,\n        e.is_influencer\n\n    FROM dbo.ext_TopUsersByTweetCount e\n\n    INNER JOIN dbo.DimUser u\n        ON e.user_id = u.UserID;\n\n\n    /* =========================================================\n       9. TOP USERS BY VIRAL TWEETS\n       ========================================================= */\n\n    INSERT INTO dbo.FactTopUsersByViralTweets\n    (\n        UserKey,\n        ViralTweetCount,\n        AvgInteractionScore,\n        FollowersCount,\n        CredibilityScore\n    )\n    SELECT\n        u.UserKey,\n        e.viral_tweet_count,\n        e.avg_interaction_score,\n        e.followers_count,\n        e.credibility_score\n\n    FROM dbo.ext_TopUsersByViralTweets e\n\n    INNER JOIN dbo.DimUser u\n        ON e.user_id = u.UserID;\n\n\n    /* =========================================================\n       10. INFLUENCER MONTHLY ENGAGEMENT\n       Grain: 1 row / month\n       ========================================================= */\n\n    INSERT INTO dbo.FactInfluencerMonthlyEngagement\n    (\n        MonthDateKey,\n        CalendarYear,\n        CalendarMonth,\n        InfluencerTweetCount,\n        AvgSentimentScore,\n        AvgInteraction,\n        DistinctInfluencers,\n        TotalFavorites,\n        TotalRetweets,\n        TotalReplies\n    )\n    SELECT\n        YEAR(year_month) * 10000\n            + MONTH(year_month) * 100\n            + 1,\n\n        year,\n        month,\n        influencer_tweet_count,\n        avg_sentiment_score,\n        avg_interaction,\n        distinct_influencers,\n        total_favorites,\n        total_retweets,\n        total_replies\n\n    FROM dbo.ext_InfluencerMonthlyEngagement\n    WHERE year_month IS NOT NULL;\n\n    /* =========================================================\n   11. FACT PREDICTION\n   Grain: one row per prediction session / target\n   ========================================================= */\n\n    INSERT INTO dbo.FactPrediction\n    (\n        PredictionDateKey,\n        TargetDateKey,\n        PredictedVolume,\n        ActualVolume,\n        PredictionAccuracy,\n        EvaluationStatus,\n        ModelVersion,\n        PredictionGeneratedAtUTC,\n        TweetCount,\n        AvgSentimentScore,\n        AvgInteractionScore\n    )\n    SELECT\n        (\n            YEAR(prediction_date) * 10000\n            + MONTH(prediction_date) * 100\n            + DAY(prediction_date)\n        ) AS PredictionDateKey,\n\n        CASE\n            WHEN target_date IS NOT NULL\n            THEN (\n                YEAR(target_date) * 10000\n                + MONTH(target_date) * 100\n                + DAY(target_date)\n            )\n            ELSE NULL\n        END AS TargetDateKey,\n\n        predicted_volume,\n        actual_volume,\n        prediction_accuracy,\n        evaluation_status,\n        model_version,\n        prediction_generated_at_utc,\n        tweet_count,\n        avg_sentiment_score,\n        avg_interaction_score\n\n    FROM dbo.ext_PredictionHistory\n    WHERE prediction_date IS NOT NULL\n    ;\n\nEND;\nGO\n\nSELECT\n    s.name AS schema_name,\n    t.name AS external_table\nFROM sys.external_tables t\nJOIN sys.schemas s\n    ON t.schema_id = s.schema_id\nORDER BY t.name;\n\nEXEC dbo.sp_DailyRefresh;\n\nSELECT COUNT(*) AS DimDate_Count\nFROM dbo.DimDate;\nGO\n\nSELECT COUNT(*) AS DimUser_Count\nFROM dbo.DimUser;\nGO\n\nSELECT COUNT(*) AS FactDailyTweet_Count\nFROM dbo.FactDailyTweet;\nGO\n\nSELECT COUNT(*) AS FactMarketSummaryPerDay_Count\nFROM dbo.FactMarketSummaryPerDay;\nGO\n\nSELECT COUNT(*) AS FactViralTweetLog_Count\nFROM dbo.FactViralTweetLog;\nGO\n\nSELECT COUNT(*) AS FactUserTypeDistribution_Count\nFROM dbo.FactUserTypeDistribution;\nGO\n\nSELECT COUNT(*) AS FactTopUsersByTweetCount_Count\nFROM dbo.FactTopUsersByTweetCount;\nGO\n\nSELECT COUNT(*) AS FactTopUsersByViralTweets_Count\nFROM dbo.FactTopUsersByViralTweets;\nGO\n\nSELECT COUNT(*) AS FactInfluencerMonthlyEngagement_Count\nFROM dbo.FactInfluencerMonthlyEngagement;\nGO\n\nSELECT *\nFROM dbo.FactPrediction;\nGO\n",
+					"query": "CREATE PROCEDURE dbo.sp_DailyRefresh\nAS\nBEGIN\n\n    /* =========================================================\n       1. CLEAR WAREHOUSE\n       ========================================================= */\n\n    TRUNCATE TABLE dbo.FactViralTweetLog;\n    TRUNCATE TABLE dbo.FactDailyTweet;\n    TRUNCATE TABLE dbo.FactMarketSummaryPerDay;\n    TRUNCATE TABLE dbo.FactUserTypeDistribution;\n    TRUNCATE TABLE dbo.FactTopUsersByTweetCount;\n    TRUNCATE TABLE dbo.FactTopUsersByViralTweets;\n    TRUNCATE TABLE dbo.FactInfluencerMonthlyEngagement;\n    TRUNCATE TABLE dbo.FactPrediction;\n\n    TRUNCATE TABLE dbo.DimUser;\n    TRUNCATE TABLE dbo.DimDate;\n\n\n    /* =========================================================\n       2. DIM DATE\n       Conformed date dimension\n       ========================================================= */\n\n    INSERT INTO dbo.DimDate\n    (\n        DateKey,\n        FullDate,\n        CalendarYear,\n        CalendarMonth,\n        MonthName,\n        DayOfMonth,\n        DayOfWeekNumber,\n        DayName,\n        YearMonth\n    )\n    SELECT DISTINCT\n        YEAR(d) * 10000 + MONTH(d) * 100 + DAY(d) AS DateKey,\n        d AS FullDate,\n        YEAR(d) AS CalendarYear,\n        MONTH(d) AS CalendarMonth,\n        DATENAME(MONTH, d) AS MonthName,\n        DAY(d) AS DayOfMonth,\n        DATEPART(WEEKDAY, d) AS DayOfWeekNumber,\n        DATENAME(WEEKDAY, d) AS DayName,\n        CONCAT(\n            YEAR(d),\n            '-',\n            RIGHT('0' + CAST(MONTH(d) AS VARCHAR(2)), 2)\n        ) AS YearMonth\n    FROM\n    (\n        SELECT tweet_created_at_date AS d\n        FROM dbo.ext_DailyTweetSummary\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_MarketSummaryPerDay\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_ViralTweetLog\n\n        UNION\n\n        SELECT tweet_created_at_date\n        FROM dbo.ext_UserTypeDistributionPerDay\n\n        UNION\n\n        SELECT year_month\n        FROM dbo.ext_InfluencerMonthlyEngagement\n\n        UNION\n\n        SELECT prediction_date\n        FROM dbo.ext_PredictionHistory\n\n        UNION\n\n        SELECT target_date\n        FROM dbo.ext_PredictionHistory\n    ) dates\n    WHERE d IS NOT NULL;\n\n\n    /* =========================================================\n       3. DIM USER\n       Natural key: UserID\n       Surrogate key: UserKey\n       ========================================================= */\n\n    INSERT INTO dbo.DimUser\n    (\n        UserKey,\n        UserID,\n        IsBlueVerified,\n        AccountCreatedAt,\n        AccountAgeDays,\n        IsNewAccount,\n        IsInfluencer,\n        FollowersCount,\n        FriendsCount,\n        MediaCount,\n        CredibilityScore\n    )\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY user_id) AS UserKey,\n        user_id,\n        is_blue_verified,\n        account_created_at,\n        account_age_days,\n        is_new_account,\n        is_influencer,\n        followers_count,\n        friends_count,\n        media_count,\n        credibility_score\n    FROM dbo.ext_UserProfile;\n\n\n    /* =========================================================\n       4. FACT DAILY TWEET\n       Grain: 1 row / date\n       ========================================================= */\n\n    INSERT INTO dbo.FactDailyTweet\n    (\n        DateKey,\n        TotalTweets,\n        AvgSentiment,\n        AvgInteractionScore,\n        AvgFavoriteRatio,\n        AvgReplyRatio,\n        TotalViralTweet,\n        AvgCredibilityScore,\n        AvgFollowers\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        total_tweets,\n        avg_sentiment,\n        avg_interaction_score,\n        avg_favorite_ratio,\n        avg_reply_ratio,\n        total_viral_tweet,\n        avg_credibility_score,\n        avg_followers\n\n    FROM dbo.ext_DailyTweetSummary\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       5. FACT MARKET SUMMARY\n       Grain: 1 row / market date\n       ========================================================= */\n\n    INSERT INTO dbo.FactMarketSummaryPerDay\n    (\n        DateKey,\n        CurrentOpen,\n        CurrentClose,\n        CurrentHigh,\n        CurrentLow,\n        CurrentVolume,\n        ActualNextVolume,\n        AvgSentiment,\n        TweetCount,\n        PredictedNextVolume,\n        PredictionAccuracy\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        current_open,\n        current_close,\n        current_high,\n        current_low,\n        current_volume,\n        actual_volume,\n        avg_sentiment,\n        tweet_count,\n        predicted_volume,\n        prediction_accuracy\n\n    FROM dbo.ext_MarketSummaryPerDay\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       6. FACT VIRAL TWEET LOG\n       Resolve UserID -> UserKey\n       ========================================================= */\n\n    INSERT INTO dbo.FactViralTweetLog\n    (\n        TweetID,\n        DateKey,\n        UserKey,\n        FullText,\n        SentimentScore,\n        InteractionScore,\n        FollowersCount,\n        FavoriteCount,\n        RetweetCount,\n        ReplyCount,\n        ViewCount,\n        CredibilityScore\n    )\n    SELECT\n        v.tweet_id,\n\n        YEAR(v.tweet_created_at_date) * 10000\n            + MONTH(v.tweet_created_at_date) * 100\n            + DAY(v.tweet_created_at_date),\n\n        u.UserKey,\n        v.full_text,\n        v.sentiment_score,\n        v.interaction_score,\n        v.followers_count,\n        v.favorite_count,\n        v.retweet_count,\n        v.reply_count,\n        v.view_count,\n        v.credibility_score\n\n    FROM dbo.ext_ViralTweetLog v\n\n    INNER JOIN dbo.DimUser u\n        ON v.user_id = u.UserID\n\n    WHERE v.tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       7. FACT USER TYPE DISTRIBUTION\n       Grain: 1 row / date\n       ========================================================= */\n\n    INSERT INTO dbo.FactUserTypeDistribution\n    (\n        DateKey,\n        InfluencerTweetCount,\n        NewAccountTweetCount,\n        BlueVerifiedTweetCount,\n        TotalTweets,\n        DistinctUsers,\n        AvgAccountAge,\n        GeneralPublicTweetCount,\n        EstablishedAccountTweetCount,\n        UnverifiedTweetCount\n    )\n    SELECT\n        YEAR(tweet_created_at_date) * 10000\n            + MONTH(tweet_created_at_date) * 100\n            + DAY(tweet_created_at_date),\n\n        influencer_tweet_count,\n        new_account_tweet_count,\n        blue_verified_tweet_count,\n        total_tweets,\n        distinct_users,\n        avg_account_age,\n        general_public_tweet_count,\n        established_account_tweet_count,\n        unverified_tweet_count\n\n    FROM dbo.ext_UserTypeDistributionPerDay\n    WHERE tweet_created_at_date IS NOT NULL;\n\n\n    /* =========================================================\n       8. TOP USERS BY TWEET COUNT\n       ========================================================= */\n\n    INSERT INTO dbo.FactTopUsersByTweetCount\n    (\n        UserKey,\n        TweetCount,\n        FollowersCount,\n        CredibilityScore,\n        IsInfluencer\n    )\n    SELECT\n        u.UserKey,\n        e.tweet_count,\n        e.followers_count,\n        e.credibility_score,\n        e.is_influencer\n\n    FROM dbo.ext_TopUsersByTweetCount e\n\n    INNER JOIN dbo.DimUser u\n        ON e.user_id = u.UserID;\n\n\n    /* =========================================================\n       9. TOP USERS BY VIRAL TWEETS\n       ========================================================= */\n\n    INSERT INTO dbo.FactTopUsersByViralTweets\n    (\n        UserKey,\n        ViralTweetCount,\n        AvgInteractionScore,\n        FollowersCount,\n        CredibilityScore\n    )\n    SELECT\n        u.UserKey,\n        e.viral_tweet_count,\n        e.avg_interaction_score,\n        e.followers_count,\n        e.credibility_score\n\n    FROM dbo.ext_TopUsersByViralTweets e\n\n    INNER JOIN dbo.DimUser u\n        ON e.user_id = u.UserID;\n\n\n    /* =========================================================\n       10. INFLUENCER MONTHLY ENGAGEMENT\n       Grain: 1 row / month\n       ========================================================= */\n\n    INSERT INTO dbo.FactInfluencerMonthlyEngagement\n    (\n        MonthDateKey,\n        CalendarYear,\n        CalendarMonth,\n        InfluencerTweetCount,\n        AvgSentimentScore,\n        AvgInteraction,\n        DistinctInfluencers,\n        TotalFavorites,\n        TotalRetweets,\n        TotalReplies\n    )\n    SELECT\n        YEAR(year_month) * 10000\n            + MONTH(year_month) * 100\n            + 1,\n\n        year,\n        month,\n        influencer_tweet_count,\n        avg_sentiment_score,\n        avg_interaction,\n        distinct_influencers,\n        total_favorites,\n        total_retweets,\n        total_replies\n\n    FROM dbo.ext_InfluencerMonthlyEngagement\n    WHERE year_month IS NOT NULL;\n\n    /* =========================================================\n   11. FACT PREDICTION\n   Grain: one row per prediction session / target\n   ========================================================= */\n\n    INSERT INTO dbo.FactPrediction\n    (\n        PredictionDateKey,\n        TargetDateKey,\n        PredictedVolume,\n        ActualVolume,\n        PredictionAccuracy,\n        EvaluationStatus,\n        ModelVersion,\n        PredictionGeneratedAtUTC,\n        TweetCount,\n        AvgSentimentScore,\n        AvgInteractionScore\n    )\n    SELECT\n        (\n            YEAR(prediction_date) * 10000\n            + MONTH(prediction_date) * 100\n            + DAY(prediction_date)\n        ) AS PredictionDateKey,\n\n        CASE\n            WHEN target_date IS NOT NULL\n            THEN (\n                YEAR(target_date) * 10000\n                + MONTH(target_date) * 100\n                + DAY(target_date)\n            )\n            ELSE NULL\n        END AS TargetDateKey,\n\n        predicted_volume,\n        actual_volume,\n        prediction_accuracy,\n        evaluation_status,\n        model_version,\n        prediction_generated_at_utc,\n        tweet_count,\n        avg_sentiment_score,\n        avg_interaction_score\n\n    FROM dbo.ext_PredictionHistory\n    WHERE prediction_date IS NOT NULL\n    ;\n\nEND;\nGO\n\nSELECT\n    s.name AS schema_name,\n    t.name AS external_table\nFROM sys.external_tables t\nJOIN sys.schemas s\n    ON t.schema_id = s.schema_id\nORDER BY t.name;\n\nEXEC dbo.sp_DailyRefresh;\n\nSELECT COUNT(*) AS DimDate_Count\nFROM dbo.DimDate;\nGO\n\nSELECT COUNT(*) AS DimUser_Count\nFROM dbo.DimUser;\nGO\n\nSELECT COUNT(*) AS FactDailyTweet_Count\nFROM dbo.FactDailyTweet;\nGO\n\nSELECT COUNT(*) AS FactMarketSummaryPerDay_Count\nFROM dbo.FactMarketSummaryPerDay;\nGO\n\nSELECT COUNT(*) AS FactViralTweetLog_Count\nFROM dbo.FactViralTweetLog;\nGO\n\nSELECT COUNT(*) AS FactUserTypeDistribution_Count\nFROM dbo.FactUserTypeDistribution;\nGO\n\nSELECT COUNT(*) AS FactTopUsersByTweetCount_Count\nFROM dbo.FactTopUsersByTweetCount;\nGO\n\nSELECT COUNT(*) AS FactTopUsersByViralTweets_Count\nFROM dbo.FactTopUsersByViralTweets;\nGO\n\nSELECT COUNT(*) AS FactInfluencerMonthlyEngagement_Count\nFROM dbo.FactInfluencerMonthlyEngagement;\nGO\n\nSELECT *\nFROM dbo.FactPrediction;\nGO\n\n",
 					"metadata": {
 						"language": "sql"
 					},
@@ -595,7 +595,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "203adc65-2b41-4714-80f5-66e1b406d3c6"
+						"spark.autotune.trackingId": "23a5267f-5fa6-4b7d-a5c8-3d4794e465b6"
 					}
 				},
 				"metadata": {
@@ -620,15 +620,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from datetime import datetime, timedelta\n",
 							"from zoneinfo import ZoneInfo\n",
@@ -665,7 +663,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Market data is fetched below for all outstanding labels.\n",
 							"# Do not gate scheduled runs on a hard-coded diagnostic date.\n",
@@ -676,7 +673,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Actual volumes are keyed by target market date in ground_truth_df.\n",
 							""
@@ -686,7 +682,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"historical_gold_df = spark.read.parquet(\n",
 							"    HISTORICAL_GOLD_PATH\n",
@@ -707,7 +702,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"(\n",
 							"    historical_gold_df\n",
@@ -730,7 +724,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"\n",
@@ -875,7 +868,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"if backfill_count > 0:\n",
 							"\n",
@@ -921,7 +913,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"prediction_archive_df = (\n",
 							"    spark.read\n",
@@ -942,7 +933,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"session_target_df = (\n",
 							"    historical_gold_df\n",
@@ -974,7 +964,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"evaluated_predictions_df = (\n",
 							"    prediction_with_target_df.alias(\"p\")\n",
@@ -1008,7 +997,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"evaluated_predictions_df.select(\n",
 							"    \"prediction_session_date\",\n",
@@ -1033,7 +1021,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"RETRAIN_THRESHOLD = 0.01\n",
 							"\n",
@@ -1065,7 +1052,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"HISTORICAL_GOLD_STAGING_PATH = (\n",
 							"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
@@ -1077,7 +1063,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"if backfill_count > 0:\n",
 							"    # Materialize to a different path before overwriting the lazy read source.\n",
@@ -1114,7 +1099,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.ml import Pipeline\n",
 							"from pyspark.ml.feature import (\n",
@@ -1153,7 +1137,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"def prepare_ml_columns(df):\n",
 							"\n",
@@ -1189,7 +1172,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"numTrees = 50\n",
 							"maxDepth = 5\n",
@@ -1251,7 +1233,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"if retrain_required:\n",
 							"\n",
@@ -1307,7 +1288,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"MODEL_STAGING_PATH = (\n",
 							"    f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/\"\n",
@@ -1319,7 +1299,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"if retrain_required:\n",
 							"\n",
@@ -1363,7 +1342,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -1396,7 +1374,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "ae70cc24-29ab-4436-9c16-f84a312ef5d4"
+						"spark.autotune.trackingId": "dfccb21f-5c10-476a-b03e-ea43137655c9"
 					}
 				},
 				"metadata": {
@@ -1421,15 +1399,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from datetime import datetime, timezone\n",
 							"from zoneinfo import ZoneInfo\n",
@@ -1526,7 +1502,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -1581,7 +1556,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"numeric_features = [\n",
 							"    \"sentiment_score\",\n",
@@ -1612,7 +1586,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"numeric_features = [\n",
 							"    \"sentiment_score\",\n",
@@ -1657,7 +1630,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"check_cols = (\n",
 							"    numeric_features\n",
@@ -1677,7 +1649,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.ml import PipelineModel\n",
 							"\n",
@@ -1768,7 +1739,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"session_date = TEST_SESSION_DATE\n",
 							"yyyy, mm, dd = session_date.split(\"-\")\n",
@@ -1812,7 +1782,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"saved_prediction_df.select(\n",
 							"    \"prediction_session_date\",\n",
@@ -1830,7 +1799,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -1839,7 +1807,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -1872,7 +1839,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "728aac97-ab9a-48fb-a5bb-ecd9a743f8e3"
+						"spark.autotune.trackingId": "f6b7ce9c-4447-47b4-a0f2-aecfd01ee02b"
 					}
 				},
 				"metadata": {
@@ -1944,53 +1911,146 @@
 							"    \"aggregates/\"\n",
 							")\n",
 							"\n",
+							"from pyspark.sql.window import Window\n",
+							"from pyspark.sql.types import StructType, StructField, DateType, DoubleType\n",
+							"\n",
+							"\n",
+							"def merge_daily_tweets(historical, envelopes):\n",
+							"    \"\"\"BI-only merge: preserve real tweet time and historical ML labels.\"\"\"\n",
+							"    if \"tweets\" not in envelopes.columns:\n",
+							"        raise ValueError(\"Stream archive is missing the tweets array\")\n",
+							"    # No inferred element schema when every archived response has an empty array.\n",
+							"    if not hasattr(envelopes.schema[\"tweets\"].dataType.elementType, \"fields\"):\n",
+							"        if envelopes.filter(F.size(\"tweets\") > 0).limit(1).count():\n",
+							"            raise ValueError(\"Stream tweets must be JSON objects\")\n",
+							"        return historical\n",
+							"    source_file = F.col(\"_source_file\") if \"_source_file\" in envelopes.columns else F.lit(\"\")\n",
+							"    stream = envelopes.select(\n",
+							"        F.to_timestamp(\"generated_at_utc\").alias(\"_observed_at\"),\n",
+							"        source_file.alias(\"_source_file\"), F.explode(\"tweets\").alias(\"tweet\")\n",
+							"    ).select(\"tweet.*\", \"_observed_at\", \"_source_file\")\n",
+							"    required = {\"tweet_id\", \"user_id\", \"tweet_timestamp_utc\"}\n",
+							"    if not required.issubset(stream.columns):\n",
+							"        raise ValueError(\"Stream tweet is missing identity or UTC timestamp fields\")\n",
+							"    stream = (stream.withColumn(\"tweet_timestamp_utc\", F.to_timestamp(\"tweet_timestamp_utc\"))\n",
+							"              .withColumn(\"tweet_timestamp_et\", F.from_utc_timestamp(\"tweet_timestamp_utc\", \"America/New_York\")))\n",
+							"    if stream.filter(F.col(\"tweet_timestamp_utc\").isNull() | F.col(\"tweet_id\").isNull()\n",
+							"                     | (F.trim(\"tweet_id\") == \"\") | F.col(\"user_id\").isNull()\n",
+							"                     | (F.trim(\"user_id\") == \"\")).limit(1).count():\n",
+							"        raise ValueError(\"Invalid stream tweet identity or timestamp; aggregates unchanged\")\n",
+							"    # Overlapping collection windows and reruns must not count a tweet twice.\n",
+							"    stream = (stream.withColumn(\"_rn\", F.row_number().over(\n",
+							"        Window.partitionBy(\"tweet_id\").orderBy(F.col(\"_observed_at\").desc_nulls_last(),\n",
+							"                                               F.col(\"_source_file\").desc())))\n",
+							"        .filter(F.col(\"_rn\") == 1).drop(\"_rn\"))\n",
+							"    # Ingestion's candidate session is not a tweet date or an authoritative ML label.\n",
+							"    protected = {\"prediction_session_date\", \"next_trading_date\", \"next_available_volume\",\n",
+							"                 \"current_open\", \"current_close\", \"current_high\", \"current_low\", \"current_volume\"}\n",
+							"    stream = stream.select(*[\n",
+							"        (F.col(field.name) if field.name in stream.columns and field.name not in protected\n",
+							"         else F.lit(None)).cast(field.dataType).alias(field.name)\n",
+							"        for field in historical.schema.fields\n",
+							"    ])\n",
+							"    merged = historical.alias(\"h\").join(stream.alias(\"s\"), on=\"tweet_id\", how=\"full\")\n",
+							"    return merged.select(F.col(\"tweet_id\"), *[\n",
+							"        F.coalesce(F.col(\"s.\" + c), F.col(\"h.\" + c)).alias(c)\n",
+							"        for c in historical.columns if c != \"tweet_id\"\n",
+							"    ])\n",
+							"\n",
+							"\n",
+							"def completed_market_frame(stock_pdf, end_date):\n",
+							"    \"\"\"One completed Yahoo bar per market date; end_date is exclusive.\"\"\"\n",
+							"    import pandas as pd\n",
+							"    import math\n",
+							"    pdf = stock_pdf.copy()\n",
+							"    if isinstance(pdf.columns, pd.MultiIndex):\n",
+							"        pdf.columns = pdf.columns.get_level_values(0)\n",
+							"    pdf = pdf.reset_index()\n",
+							"    fields = [\"Open\", \"Close\", \"High\", \"Low\", \"Volume\"]\n",
+							"    if not {\"Date\", *fields}.issubset(pdf.columns):\n",
+							"        raise ValueError(\"Yahoo market response is missing OHLCV columns\")\n",
+							"    rows = []\n",
+							"    for _, row in pdf.iterrows():\n",
+							"        market_date = pd.Timestamp(row[\"Date\"]).date()\n",
+							"        values = [float(row[c]) for c in fields]\n",
+							"        if market_date < end_date and all(math.isfinite(v) and v > 0 for v in values):\n",
+							"            rows.append((market_date, *values))\n",
+							"    if not rows:\n",
+							"        raise ValueError(\"No completed market bars; refusing to overwrite market aggregates\")\n",
+							"    schema = StructType([StructField(\"tweet_created_at_date\", DateType(), False)] + [\n",
+							"        StructField(\"current_\" + c.lower(), DoubleType(), False) for c in fields\n",
+							"    ])\n",
+							"    return spark.createDataFrame(rows, schema).dropDuplicates([\"tweet_created_at_date\"])\n",
+							"\n",
+							"\n",
+							"def build_market_summary(tweets, market, historical, predictions):\n",
+							"    \"\"\"Calendar-date OHLCV is independent of tweet coverage; forecast uses session D.\"\"\"\n",
+							"    sentiment = tweets.groupBy(\"tweet_created_at_date\").agg(\n",
+							"        F.avg(\"sentiment_score\").alias(\"avg_sentiment\"), F.count(\"*\").alias(\"tweet_count\"))\n",
+							"    summary = market.join(sentiment, on=\"tweet_created_at_date\", how=\"full\")\n",
+							"    # The forecast made in session D and its next-session actual belong together.\n",
+							"    # Do not join a forecast on target D while using the label for D+1.\n",
+							"    labels = (historical.groupBy(\"prediction_session_date\")\n",
+							"              .agg(F.max(\"next_available_volume\").cast(\"double\").alias(\"actual_volume\"))\n",
+							"              .withColumnRenamed(\"prediction_session_date\", \"tweet_created_at_date\"))\n",
+							"    summary = summary.join(labels, on=\"tweet_created_at_date\", how=\"left\")\n",
+							"    if predictions is not None:\n",
+							"        latest = (predictions.withColumn(\"tweet_created_at_date\", F.to_date(\"prediction_session_date\"))\n",
+							"                  .withColumn(\"_rn\", F.row_number().over(Window.partitionBy(\"tweet_created_at_date\")\n",
+							"                              .orderBy(F.col(\"prediction_generated_at_utc\").desc())))\n",
+							"                  .filter(F.col(\"_rn\") == 1)\n",
+							"                  .select(\"tweet_created_at_date\", F.col(\"predicted_next_volume\").cast(\"double\").alias(\"predicted_volume\")))\n",
+							"        summary = summary.join(latest, on=\"tweet_created_at_date\", how=\"left\")\n",
+							"    else:\n",
+							"        summary = summary.withColumn(\"predicted_volume\", F.lit(None).cast(\"double\"))\n",
+							"    return (summary.withColumn(\"tweet_count\", F.coalesce(\"tweet_count\", F.lit(0).cast(\"long\")))\n",
+							"            .withColumn(\"prediction_accuracy\", F.when(\n",
+							"                (F.col(\"actual_volume\") > 0) & F.col(\"predicted_volume\").isNotNull(),\n",
+							"                1 - F.abs(F.col(\"actual_volume\") - F.col(\"predicted_volume\")) / F.col(\"actual_volume\")))\n",
+							"            .select(\"tweet_created_at_date\", \"current_open\", \"current_close\", \"current_high\", \"current_low\",\n",
+							"                    \"current_volume\", \"actual_volume\", \"avg_sentiment\", \"tweet_count\", \"predicted_volume\", \"prediction_accuracy\"))\n",
+							"\n",
+							"\n",
 							"# ============================================================\n",
-							"# Read Historical Gold\n",
+							"# Read Historical Gold and archived daily tweets for BI\n",
 							"# ============================================================\n",
+							"spark.conf.set(\"spark.sql.session.timeZone\", \"UTC\")\n",
+							"STREAM_ROOT = f\"abfss://gold@{STORAGE_ACCOUNT}.dfs.core.windows.net/stream/\"\n",
+							"historical_bi_df = spark.read.parquet(GOLD_PATH)\n",
+							"# Fail visibly on missing/inaccessible stream archives; do not silently publish\n",
+							"# historical-only BI data after a daily source failure.\n",
+							"stream_envelopes = (spark.read.option(\"multiline\", \"true\")\n",
+							"                    .option(\"mode\", \"FAILFAST\")\n",
+							"                    .option(\"recursiveFileLookup\", \"true\")\n",
+							"                    .option(\"pathGlobFilter\", \"tweets_gold.json\")\n",
+							"                    .json(STREAM_ROOT)\n",
+							"                    .withColumn(\"_source_file\", F.input_file_name()))\n",
+							"df = merge_daily_tweets(historical_bi_df, stream_envelopes)\n",
+							"df = df.withColumn(\"tweet_created_at_date\", F.to_date(\"tweet_timestamp_et\"))\n",
+							"print(\"BI historical source:\", GOLD_PATH)\n",
+							"print(\"BI daily source:\", STREAM_ROOT)\n",
+							"display(df.groupBy(\"tweet_created_at_date\").count().orderBy(F.col(\"tweet_created_at_date\").desc()))\n",
 							"\n",
-							"df = spark.read.parquet(GOLD_PATH)\n",
-							"\n",
-							"print(\"Historical Gold\")\n",
-							"print(\"rows =\", df.count())\n",
-							"print(\"columns =\", len(df.columns))\n",
-							"\n",
-							"# Standard BI date\n",
-							"df = df.withColumn(\n",
-							"    \"tweet_created_at_date\",\n",
-							"    F.to_date(\"tweet_timestamp_et\")\n",
-							")\n",
-							"\n",
-							"display(\n",
-							"    df.select(\n",
-							"        \"tweet_id\",\n",
-							"        \"user_id\",\n",
-							"        \"tweet_created_at_date\",\n",
-							"        \"prediction_session_date\",\n",
-							"        \"sentiment_score\",\n",
-							"        \"interaction_score\",\n",
-							"        \"is_viral\",\n",
-							"        \"current_volume\",\n",
-							"        \"next_available_volume\"\n",
-							"    ).limit(5)\n",
-							")\n",
+							"# Fetch current-market bars independently of whether tweets exist that day.\n",
+							"# End date matches BackfillRetrain's conservative evening completion cutoff.\n",
+							"from datetime import datetime, timedelta\n",
+							"from zoneinfo import ZoneInfo\n",
+							"import yfinance as yf\n",
+							"now_et = datetime.now(ZoneInfo(\"America/New_York\"))\n",
+							"market_end = now_et.date() + timedelta(days=1 if now_et.hour >= 18 else 0)\n",
+							"first_tweet_date = df.agg(F.min(\"tweet_created_at_date\").alias(\"d\")).first()[\"d\"]\n",
+							"market_start = min(first_tweet_date, now_et.date() - timedelta(days=30)) if first_tweet_date else now_et.date() - timedelta(days=30)\n",
+							"stock_pdf = yf.download(\"NVDA\", start=market_start.isoformat(), end=market_end.isoformat(),\n",
+							"                        auto_adjust=False, progress=False)\n",
+							"market_daily_df = completed_market_frame(stock_pdf, market_end)\n",
+							"print(\"Completed market range:\", market_start, market_end, \"(end exclusive)\")\n",
 							"\n",
 							"# ============================================================\n",
 							"# Read streaming predictions\n",
 							"# ============================================================\n",
-							"\n",
-							"try:\n",
-							"    predicted_df = (\n",
-							"        spark.read\n",
-							"        .option(\"recursiveFileLookup\", \"true\")\n",
-							"        .parquet(PREDICTION_ROOT)\n",
-							"    )\n",
-							"\n",
-							"    print(\"Prediction rows =\", predicted_df.count())\n",
-							"\n",
-							"except Exception as e:\n",
-							"    predicted_df = None\n",
-							"    print(\"No streaming prediction available.\")\n",
-							"    print(str(e)[:300])"
+							"predicted_df = (spark.read.option(\"recursiveFileLookup\", \"true\").parquet(PREDICTION_ROOT))\n",
+							"print(\"Prediction rows =\", predicted_df.count())\n",
+							""
 						],
 						"outputs": [],
 						"execution_count": 3
@@ -2068,113 +2128,8 @@
 							"# 3. MARKET SUMMARY PER DAY\n",
 							"# ============================================================\n",
 							"\n",
-							"market_summary_per_day = (\n",
-							"    df.groupBy(\"tweet_created_at_date\")\n",
-							"    .agg(\n",
-							"        avg(\"current_open\").alias(\"current_open\"),\n",
-							"        avg(\"current_close\").alias(\"current_close\"),\n",
-							"        avg(\"current_high\").alias(\"current_high\"),\n",
-							"        avg(\"current_low\").alias(\"current_low\"),\n",
-							"        avg(\"current_volume\").alias(\"current_volume\"),\n",
-							"\n",
-							"        avg(\"next_available_volume\").alias(\n",
-							"            \"actual_volume\"\n",
-							"        ),\n",
-							"\n",
-							"        avg(\"sentiment_score\").alias(\n",
-							"            \"avg_sentiment\"\n",
-							"        ),\n",
-							"\n",
-							"        count(\"*\").alias(\"tweet_count\")\n",
-							"    )\n",
-							")\n",
-							"\n",
-							"\n",
-							"# Add prediction where available.\n",
-							"# Our reproduction prediction is keyed by prediction_session_date.\n",
-							"if predicted_df is not None:\n",
-							"\n",
-							"    prediction_for_market = (\n",
-							"        predicted_df\n",
-							"        .select(\n",
-							"            F.to_date(\"prediction_session_date\").alias(\n",
-							"                \"prediction_session_date\"\n",
-							"            ),\n",
-							"            col(\"predicted_next_volume\").cast(\"double\").alias(\n",
-							"                \"predicted_volume\"\n",
-							"            )\n",
-							"        )\n",
-							"        .dropDuplicates([\"prediction_session_date\"])\n",
-							"    )\n",
-							"\n",
-							"    # prediction made in session D predicts the next trading day's\n",
-							"    # volume. Historical Gold already stores that mapping.\n",
-							"    session_target_map = (\n",
-							"        df.select(\n",
-							"            F.to_date(\"prediction_session_date\").alias(\n",
-							"                \"prediction_session_date\"\n",
-							"            ),\n",
-							"            F.to_date(\"next_trading_date\").alias(\n",
-							"                \"target_market_date\"\n",
-							"            )\n",
-							"        )\n",
-							"        .dropDuplicates([\"prediction_session_date\"])\n",
-							"    )\n",
-							"\n",
-							"    prediction_for_market = (\n",
-							"        prediction_for_market\n",
-							"        .join(\n",
-							"            session_target_map,\n",
-							"            on=\"prediction_session_date\",\n",
-							"            how=\"left\"\n",
-							"        )\n",
-							"        .select(\n",
-							"            col(\"target_market_date\").alias(\n",
-							"                \"tweet_created_at_date\"\n",
-							"            ),\n",
-							"            \"predicted_volume\"\n",
-							"        )\n",
-							"    )\n",
-							"\n",
-							"    market_summary_per_day = (\n",
-							"        market_summary_per_day\n",
-							"        .join(\n",
-							"            prediction_for_market,\n",
-							"            on=\"tweet_created_at_date\",\n",
-							"            how=\"left\"\n",
-							"        )\n",
-							"    )\n",
-							"\n",
-							"else:\n",
-							"    market_summary_per_day = (\n",
-							"        market_summary_per_day\n",
-							"        .withColumn(\n",
-							"            \"predicted_volume\",\n",
-							"            F.lit(None).cast(\"double\")\n",
-							"        )\n",
-							"    )\n",
-							"\n",
-							"\n",
-							"# Prediction accuracy for Power BI\n",
-							"market_summary_per_day = (\n",
-							"    market_summary_per_day\n",
-							"    .withColumn(\n",
-							"        \"prediction_accuracy\",\n",
-							"        F.when(\n",
-							"            col(\"actual_volume\").isNotNull()\n",
-							"            & col(\"predicted_volume\").isNotNull()\n",
-							"            & (col(\"actual_volume\") != 0),\n",
-							"\n",
-							"            F.lit(1.0)\n",
-							"            - (\n",
-							"                F.abs(\n",
-							"                    col(\"actual_volume\")\n",
-							"                    - col(\"predicted_volume\")\n",
-							"                )\n",
-							"                / col(\"actual_volume\")\n",
-							"            )\n",
-							"        )\n",
-							"    )\n",
+							"market_summary_per_day = build_market_summary(\n",
+							"    df, market_daily_df, historical_bi_df, predicted_df\n",
 							")\n",
 							"\n",
 							"\n",
@@ -2647,7 +2602,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "66b052b2-c99d-4886-8e7f-f07794a338f2"
+						"spark.autotune.trackingId": "bc298f5f-957d-4750-ba48-8c872d573403"
 					}
 				},
 				"metadata": {
@@ -2672,15 +2627,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -2712,7 +2665,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -2759,7 +2711,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"train_session_set = set(\n",
 							"    r[\"prediction_session_date\"]\n",
@@ -2782,7 +2733,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"numeric_features = [\n",
 							"    \"sentiment_score\",\n",
@@ -2815,7 +2765,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"def prepare_ml_columns(df):\n",
 							"    result = df\n",
@@ -2854,7 +2803,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.ml import Pipeline\n",
 							"from pyspark.ml.feature import (\n",
@@ -2871,7 +2819,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"day_indexer = StringIndexer(\n",
 							"    inputCol=\"day_of_week\",\n",
@@ -2890,7 +2837,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"assembler_inputs = (\n",
 							"    numeric_features\n",
@@ -2909,7 +2855,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"scaler = StandardScaler(\n",
 							"    inputCol=\"raw_features\",\n",
@@ -2923,7 +2868,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"rf = RandomForestRegressor(\n",
 							"    featuresCol=\"features\",\n",
@@ -2937,7 +2881,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"pipeline = Pipeline(\n",
 							"    stages=[\n",
@@ -2956,7 +2899,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"baseline_model = pipeline.fit(train_ml)\n",
 							"\n",
@@ -2974,7 +2916,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"rmse_evaluator = RegressionEvaluator(\n",
 							"    labelCol=\"next_available_volume\",\n",
@@ -3007,7 +2948,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"session_predictions = (\n",
 							"    predictions\n",
@@ -3027,7 +2967,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"session_eval_df = (\n",
 							"    session_predictions\n",
@@ -3062,7 +3001,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from itertools import product\n",
 							"\n",
@@ -3090,7 +3028,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"ordered_train_sessions = sorted(train_sessions)\n",
 							"\n",
@@ -3121,7 +3058,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.ml import Pipeline\n",
 							"from pyspark.ml.regression import RandomForestRegressor\n",
@@ -3176,7 +3112,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"results = []\n",
 							"\n",
@@ -3239,7 +3174,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"results_sorted = sorted(\n",
 							"    results,\n",
@@ -3268,7 +3202,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"best_rf_params = {\n",
 							"    \"numTrees\": 50,\n",
@@ -3287,7 +3220,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"final_predictions = final_model.transform(test_ml)\n",
 							"\n",
@@ -3311,7 +3243,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"final_eval = (\n",
 							"    final_session_predictions\n",
@@ -3347,7 +3278,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"final_session_predictions = (\n",
 							"    final_session_predictions\n",
@@ -3387,7 +3317,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"all_labeled_ml = prepare_ml_columns(\n",
 							"    training_df\n",
@@ -3419,7 +3348,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"MODEL_PATH = (\n",
 							"    \"abfss://gold@stnvdaanna2026.dfs.core.windows.net/\"\n",
@@ -3438,7 +3366,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.ml import PipelineModel\n",
 							"\n",
@@ -3453,7 +3380,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"reload_predictions = (\n",
 							"    loaded_model\n",
@@ -3486,7 +3412,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"MODEL_VERSION = \"nvda_volume_rf_v1\"\n",
 							"\n",
@@ -3531,7 +3456,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -3564,7 +3488,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "0a0b4fce-649a-484c-8a97-d58c13007bb7"
+						"spark.autotune.trackingId": "57d3afd6-30b5-449a-8316-59487f026cad"
 					}
 				},
 				"metadata": {
@@ -3589,15 +3513,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -3622,7 +3544,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"df_silver = (\n",
 							"    df_bronze\n",
@@ -3667,7 +3588,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -3687,7 +3607,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"silver_path = (\n",
 							"    \"abfss://silver@stnvdaanna2026.dfs.core.windows.net/\"\n",
@@ -3708,7 +3627,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"files = mssparkutils.fs.ls(silver_path)\n",
 							"\n",
@@ -3720,7 +3638,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"silver_check = spark.read.parquet(silver_path)\n",
 							"\n",
@@ -3733,7 +3650,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"stocks_check = spark.read.parquet(\n",
@@ -3752,7 +3668,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -3761,7 +3676,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -3794,7 +3708,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "c14e33db-853a-4ea5-bae0-ac6b382e3869"
+						"spark.autotune.trackingId": "ccbdf8e7-3001-475a-98a3-aa740864c687"
 					}
 				},
 				"metadata": {
@@ -3819,15 +3733,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"print(\"Stock Bronze notebook ready\")"
 						],
@@ -3836,7 +3748,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"%pip install yfinance --upgrade --quiet"
 						],
@@ -3845,7 +3756,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import yfinance as yf\n",
 							"import pandas as pd\n",
@@ -3858,7 +3768,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"start_date = \"2024-01-01\"\n",
 							"end_date = \"2026-09-16\"\n",
@@ -3881,7 +3790,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Flatten yfinance MultiIndex columns\n",
 							"nvda.columns = nvda.columns.get_level_values(\"Price\")\n",
@@ -3903,7 +3811,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stock_spark_df = spark.createDataFrame(nvda)\n",
 							"\n",
@@ -3915,7 +3822,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"bronze_path = (\n",
 							"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
@@ -3929,7 +3835,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"mssparkutils.fs.ls(\n",
 							"    \"abfss://bronze@stnvdaanna2026.dfs.core.windows.net/\"\n",
@@ -3940,7 +3845,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stock_spark_df \\\n",
 							"    .coalesce(1) \\\n",
@@ -3956,7 +3860,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"files = mssparkutils.fs.ls(bronze_path)\n",
 							"\n",
@@ -3968,7 +3871,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"bronze_check = (\n",
 							"    spark.read\n",
@@ -3986,7 +3888,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -4019,7 +3920,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "d557a364-464c-49f5-9484-f6feba374f8d"
+						"spark.autotune.trackingId": "69428423-b14a-41d6-bd6a-f0efb56c343c"
 					}
 				},
 				"metadata": {
@@ -4044,15 +3945,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"%pip install nltk --quiet"
 						],
@@ -4061,7 +3960,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"from pyspark.sql.types import DoubleType\n",
@@ -4101,7 +3999,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_df = spark.read.parquet(TWEET_SILVER_PATH)\n",
 							"stock_df = spark.read.parquet(STOCK_SILVER_PATH)\n",
@@ -4120,7 +4017,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_df.select(\n",
 							"    F.sum(F.col(\"tweet_id\").isNull().cast(\"int\")).alias(\"null_tweet_id\"),\n",
@@ -4140,7 +4036,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    tweet_df\n",
@@ -4172,7 +4067,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features.select(\n",
 							"    \"tweet_created_at\",\n",
@@ -4188,7 +4082,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    tweet_features\n",
@@ -4217,7 +4110,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"nltk.download(\"vader_lexicon\")\n",
 							"\n",
@@ -4244,7 +4136,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    tweet_features\n",
@@ -4287,7 +4178,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = tweet_features.withColumn(\n",
 							"    \"account_created_date\",\n",
@@ -4307,7 +4197,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    tweet_features\n",
@@ -4371,7 +4260,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stock_features = (\n",
 							"    stock_df\n",
@@ -4395,7 +4283,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stock_features.orderBy(\n",
 							"    F.col(\"stock_date\").desc()\n",
@@ -4406,7 +4293,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"trading_window = Window.orderBy(\"stock_date\")\n",
 							"\n",
@@ -4434,7 +4320,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stock_features.select(\n",
 							"    \"stock_date\",\n",
@@ -4450,7 +4335,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"trading_sessions = (\n",
 							"    stock_features\n",
@@ -4483,7 +4367,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_session_df = (\n",
 							"    tweet_features.alias(\"t\")\n",
@@ -4520,7 +4403,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_session_df.select(\n",
 							"    \"tweet_id\",\n",
@@ -4535,7 +4417,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_session_df.groupBy(\n",
 							"    \"prediction_session_date\"\n",
@@ -4548,7 +4429,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"assigned_ids = (\n",
 							"    tweet_session_df\n",
@@ -4570,7 +4450,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"print(\n",
 							"    \"Input tweets:\",\n",
@@ -4592,7 +4471,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_df = (\n",
 							"    tweet_session_df.alias(\"t\")\n",
@@ -4623,7 +4501,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_df = (\n",
 							"    gold_df\n",
@@ -4649,7 +4526,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_df = gold_df.select(\n",
 							"\n",
@@ -4734,7 +4610,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"print(\"Gold rows:\", gold_df.count())\n",
 							"\n",
@@ -4775,7 +4650,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"historical_gold_df = (\n",
 							"    gold_df\n",
@@ -4806,7 +4680,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_df.select(\n",
 							"    \"tweet_id\",\n",
@@ -4830,7 +4703,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"(\n",
 							"    gold_df\n",
@@ -4844,7 +4716,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_check = spark.read.parquet(\n",
 							"    GOLD_OUTPUT_PATH\n",
@@ -4862,7 +4733,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"\n",
@@ -4894,7 +4764,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -4927,7 +4796,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "109e99d1-d3cb-45ef-bd51-0d10f5108782"
+						"spark.autotune.trackingId": "9d388d9c-5391-44e6-8656-2108fe4cf861"
 					}
 				},
 				"metadata": {
@@ -4952,15 +4821,13 @@
 						"sparkVersion": "3.5",
 						"nodeCount": 10,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"%pip install pandas_market_calendars nltk --quiet"
 						],
@@ -4969,7 +4836,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql import functions as F\n",
 							"from pyspark.sql.types import TimestampType, DoubleType\n",
@@ -5008,7 +4874,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweets = spark.read.parquet(TWEET_SILVER_PATH)\n",
 							"stocks = spark.read.parquet(STOCK_SILVER_PATH)\n",
@@ -5031,7 +4896,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"@F.udf(TimestampType())\n",
 							"def parse_twitter_timestamp(value):\n",
@@ -5095,7 +4959,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"nyse = mcal.get_calendar(\"NYSE\")\n",
 							"\n",
@@ -5148,7 +5011,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweets_candidate = (\n",
 							"    tweets_session\n",
@@ -5213,7 +5075,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"session_mapping.agg(\n",
 							"\n",
@@ -5253,7 +5114,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"nltk.download(\"vader_lexicon\", quiet=True)\n",
 							"\n",
@@ -5283,7 +5143,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    session_mapping\n",
@@ -5409,7 +5268,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features = (\n",
 							"    tweet_features\n",
@@ -5522,7 +5380,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"tweet_features.agg(\n",
 							"\n",
@@ -5588,7 +5445,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"stocks_clean = (\n",
 							"    stocks\n",
@@ -5648,7 +5504,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold = (\n",
 							"    tweet_features.alias(\"t\")\n",
@@ -5673,7 +5528,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold = (\n",
 							"    gold.alias(\"g\")\n",
@@ -5723,7 +5577,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"next_volume = (\n",
 							"    stocks_clean\n",
@@ -5759,7 +5612,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_final = (\n",
 							"    gold.select(\n",
@@ -5826,7 +5678,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_final.agg(\n",
 							"\n",
@@ -5879,7 +5730,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"(\n",
 							"    gold_final\n",
@@ -5921,7 +5771,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"training_ready = (\n",
 							"    gold_final\n",
@@ -5953,7 +5802,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"invalid_labels = (\n",
 							"    gold_final\n",
@@ -5983,7 +5831,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"(\n",
 							"    gold_final\n",
@@ -6007,7 +5854,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"gold_check = spark.read.parquet(\n",
 							"    HISTORICAL_GOLD_PATH\n",
@@ -6049,7 +5895,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
