@@ -111,7 +111,12 @@ class DailyGoldTest(unittest.TestCase):
             self.assertEqual(sorted(rerun.collect()), sorted(merged.collect()))
             self.assertEqual(h.count(), 1)  # no mutation of the training input
 
-            env = dict(self.env, df=merged.withColumn('tweet_created_at_date', F.to_date('tweet_timestamp_et')),
+            forecast = self.spark.createDataFrame([
+                (date(2026, 9, 16), 95000000., 'v1', datetime(2026, 9, 16, 10), 20, .1, .2)
+            ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
+            market = self.env['completed_market_frame'](self.market_fixture(), date(2026, 9, 18))
+            evaluation = self.env['evaluate_predictions'](forecast, market, date(2026, 9, 18))
+            env = dict(self.env, prediction_history=evaluation, df=merged.withColumn('tweet_created_at_date', F.to_date('tweet_timestamp_et')),
                        historical_bi_df=h, predicted_df=None,
                        market_daily_df=self.env['completed_market_frame'](self.market_fixture(), date(2026, 9, 18)),
                        AGG_ROOT=tmp + '/out/')
@@ -159,6 +164,25 @@ class DailyGoldTest(unittest.TestCase):
         dim = sql.split(') dates', 1)[0]
         self.assertIn('SELECT prediction_date\n        FROM dbo.ext_PredictionHistory', dim)
         self.assertIn('SELECT target_date\n        FROM dbo.ext_PredictionHistory', dim)
+
+    def test_market_summary_and_history_share_evaluation_without_session_tweets(self):
+        tweets = self.historical_fixture().withColumn('tweet_created_at_date', F.to_date('tweet_timestamp_et'))
+        market = self.spark.createDataFrame([
+            (date(2026, 9, 17), 100., 101., 102., 99., 94191300.),
+            (date(2026, 9, 18), 101., 102., 103., 100., 190290000.),
+        ], 'tweet_created_at_date date, current_open double, current_close double, current_high double, current_low double, current_volume double')
+        predictions = self.spark.createDataFrame([
+            (date(2026, 9, 17), 128255294.133, 'v1', datetime(2026, 9, 23, 15), 20, .1, .2),
+        ], 'prediction_session_date date, predicted_next_volume double, model_version string, prediction_generated_at_utc timestamp, tweet_count long, avg_sentiment_score double, avg_interaction_score double')
+        evaluation = self.env['evaluate_predictions'](predictions, market, date(2026, 9, 23))
+        summary = self.env['build_market_summary'](tweets, market, evaluation)
+        row = summary.filter("tweet_created_at_date = '2026-09-17'").first()
+        self.assertEqual(row.actual_volume, evaluation.first().actual_volume)
+        self.assertEqual(row.actual_volume, 190290000.)
+        self.assertEqual(row.prediction_accuracy, evaluation.first().prediction_accuracy)
+        self.assertEqual(row.tweet_count, 0)
+        self.assertIsNone(row.avg_sentiment)
+
 
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@
 					"parameters": {
 						"TEST_SESSION_DATE": {
 							"value": {
-								"value": "@pipeline().parameters.p_session_date",
+								"value": "@if(empty(pipeline().parameters.p_session_date),formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Eastern Standard Time'),'yyyy-MM-dd'),pipeline().parameters.p_session_date)",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -41,7 +41,7 @@
 		"parameters": {
 			"p_session_date": {
 				"type": "string",
-				"defaultValue": "2026-09-16"
+				"defaultValue": ""
 			}
 		},
 		"annotations": [],
