@@ -74,6 +74,16 @@ BEGIN
 
         SELECT year_month
         FROM dbo.ext_InfluencerMonthlyEngagement
+
+        UNION
+
+        SELECT prediction_date
+        FROM dbo.ext_PredictionHistory
+
+        UNION
+
+        SELECT target_date
+        FROM dbo.ext_PredictionHistory
     ) dates
     WHERE d IS NOT NULL;
 
